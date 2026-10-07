@@ -133,6 +133,16 @@ def cost_no_plan(pattern: WeeklyPattern, weeks: float, prices: Prices,
     return _result("no plan (guest rates)", pattern.total * weeks, 0.0, total, total)
 
 
+def cost_cash_at_cafe(pattern: WeeklyPattern, weeks: float, cafe_meal_price: Optional[float] = None) -> TermCost:
+    """Grad baseline: pay cash at a HUDS cafe for every meal (no plan, no discount)."""
+    _check_weeks(weeks)
+    notes = ""
+    if cafe_meal_price is None:
+        cafe_meal_price, notes = CAFE_MEAL_PRICE_ESTIMATE, CAFE_ESTIMATE_NOTE
+    total = pattern.total * cafe_meal_price * weeks
+    return _result("no plan (cash at cafe)", pattern.total * weeks, 0.0, total, total, notes=notes)
+
+
 def cost_resident_unlimited(pattern: WeeklyPattern, weeks: float, prices: Prices) -> TermCost:
     """Mandatory unlimited plan: half the annual board fee per term, less that term's BoardPlus."""
     _check_weeks(weeks)

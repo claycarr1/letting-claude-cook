@@ -11,6 +11,7 @@ from model import (
     CAFE_MEAL_PRICE_ESTIMATE,
     Prices,
     WeeklyPattern,
+    cost_cash_at_cafe,
     cost_gradplus,
     cost_no_plan,
     cost_non_resident,
@@ -202,6 +203,15 @@ def test_gradplus_cafe_price_same_for_every_meal_type():
     a = cost_gradplus(WeeklyPattern(breakfast=2), WEEKS, PRICES, "regular", "fall")
     b = cost_gradplus(WeeklyPattern(dinner=2), WEEKS, PRICES, "regular", "fall")
     assert a.total_cost == pytest.approx(b.total_cost)
+
+
+def test_cash_at_cafe_baseline():
+    # 5 meals/week x 15 weeks x 12.50 = 937.50, flagged as an estimate; GradPlus Deluxe on the same
+    # pattern (test above) costs 870.83, i.e. 66.67 less = 10% of the 666.67 the balance covers.
+    r = cost_cash_at_cafe(WeeklyPattern(dinner=5), WEEKS)
+    assert r.total_cost == pytest.approx(937.50)
+    assert "ESTIMATE" in r.notes
+    assert cost_cash_at_cafe(WeeklyPattern(dinner=5), WEEKS, cafe_meal_price=10).total_cost == pytest.approx(750)
 
 
 # ---------------------------------------------------------------- input checks
