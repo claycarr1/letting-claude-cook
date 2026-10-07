@@ -48,7 +48,7 @@ Pages to fetch:
 
 1. **Data collection:** agent fetches and parses the HUDS pages and the official board fee, records values with source URLs and fetch dates in a `data/` folder. Step 1 covers only these; Cambridge restaurant and grocery prices are gathered in a separate later step.
 2. **Deterministic model:** cost per meal eaten for each plan as a function of meals eaten per week by meal type, weeks on campus, and forfeiture rules. Pure, unit-tested functions.
-3. **Monte Carlo simulation (secondary):** simulate thousands of students with varied habits — breakfast skipping rate, weekend-away frequency, eat-out frequency, cooking share, term length — and varied assumptions. Its job is now to show how sensitive the decision map (step 4) is to the model's assumptions, not to be the headline result.
+3. **Monte Carlo simulation (secondary):** simulate thousands of students with varied habits — breakfast skipping rate, weekend-away frequency, eat-out frequency, cooking share — and varied assumptions, including **weeks per term** (the result is sensitive to it: the 10-meal plan beats paying cash only above ~15.2 weeks and is never the cheapest option below ~16.1). Its job is now to show how sensitive the decision map (step 4) is to the model's assumptions, not to be the headline result.
 4. **Decision map (main output):** for every combination of the three habit inputs (meals out per week, breakfasts skipped per week, weekends away per term), run every plan through the model and find the cheapest option and its dollar gap to the runner-up. Plot meals out vs breakfasts skipped with regions colored by the cheapest option, one panel per weekends-away level, with an optional "you are here" dot. Break-even points against (a) guest rates, (b) eating out at typical Cambridge prices, (c) cooking are read off the region boundaries. See "Decision map" below.
 5. **Validation:** compare model prediction to the user's actual swipe history (or survey data). Report error.
 6. **Write-up:** short report with figures (break-even curves, cost-per-meal distributions, tier recommendation by student type). Every figure reproducible from a script.
@@ -58,7 +58,11 @@ Pages to fetch:
 The main output of the project is a **decision map**: a plot where a student locates themselves by three habit inputs and reads off which plan is cheapest.
 
 - **Inputs:** meals out per week (0–14), breakfasts skipped per week (0–7), weekends away per term (0–10).
-- **Plots:** meals out vs breakfasts skipped, regions colored by the cheapest option (each plan plus the no-plan cash baseline), one panel per weekends-away level.
+- **Plots:** meals out vs breakfasts skipped, regions colored by the cheapest option, one panel per weekends-away level. Only options a student can actually choose between appear on the same map:
+  - **Headline: off-campus undergrads** — non-resident 5/10/21 plans vs paying guest rates.
+  - **Grad students** — GradPlus Regular/Deluxe vs paying cash at the cafe. Keep it, with its caveats: it depends on the estimated cafe meal price, and the 21-meal week is unrealistic for weekday cafes.
+  - **No all-plans map in the results.** Mixing groups is misleading (GradPlus "wins" ~92% of it only because cafe meals are cheaper than dining-hall meals, and undergrads can't buy it). It appears only as a short note in `report.md` explaining this.
+- **On-campus undergrads** have no choice (the unlimited plan is mandatory), so they get a separate chart instead of a map: cost per meal actually eaten vs meals eaten per week, with guest-rate prices as comparison lines.
 - **Function:** takes the three inputs and returns the recommended plan and the dollar gap to the runner-up.
 - **"You are here":** a way to plot a dot at a student's own inputs on the map.
 - The Monte Carlo step stays, but is secondary: it shows how sensitive the map is to assumptions.
