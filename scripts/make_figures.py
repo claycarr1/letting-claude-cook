@@ -8,7 +8,7 @@ Usage:
 Writes:
   figures/decision_map_<group>.png/.csv  for each group in MAP_GROUPS (one panel per weekends-away
                                          level; CSV has every cell's costs, cheapest plan and gap)
-  figures/meals_out_comparison.png       main map vs meals out taken from dinners first, 2 weekends away
+  figures/meals_out_comparison.png       meals out spread vs dinners first vs lunches first, 2 weekends away
   figures/you_are_here.png               the --you-are-here habits on their map (default: the
                                          example student, 4 meals out, 3 breakfasts skipped,
                                          2 weekends away)

@@ -34,7 +34,7 @@ Weeks of dining come from the non-resident plan's term dates on the HUDS meal-pl
 Resident undergraduates get $65 of BoardPlus per semester ($130 per year), spendable at HUDS cafes, House grilles and on guest meals; it can't be topped up and expires at the end of the school year. **The $65 is listed on the HUDS FAQ alongside 2025–26 dates; it is assumed to still apply in 2026–27.** Results credit it at face value (treated as fully spent), so the resident plan costs $4,471 − $65 = $4,406 per term. The on-campus chart also shows the plan with BoardPlus unspent ($4,471 per term); the difference is about 1.5%.
 
 ### Monte Carlo odds: 50/50
-The sensitivity check (below) treats three yes/no assumptions as coin flips with **50/50 odds**: whether the short first week gives full or partial swipes, whether meals eaten elsewhere come mostly from dinners or are spread across lunch, brunch and dinner, and whether breakfast is priced at the House ($10.84) or Annenberg/Quincy ($12.90) guest rate. BoardPlus spent or unspent is also 50/50 (it only affects the on-campus chart). Weeks per term are drawn uniformly between 14.5 and 16, separately for fall and spring. **The 50/50 odds are a deliberately neutral choice, not a measurement**; the stability percentages depend on them, and different odds would give different percentages.
+The sensitivity check (below) treats three yes/no assumptions as coin flips with **50/50 odds**: whether the short first week gives full or partial swipes, whether meals eaten elsewhere come mostly from dinners or are spread across lunch, brunch and dinner (the model's third setting, lunches first, is not part of the Monte Carlo check), and whether breakfast is priced at the House ($10.84) or Annenberg/Quincy ($12.90) guest rate. BoardPlus spent or unspent is also 50/50 (it only affects the on-campus chart). Weeks per term are drawn uniformly between 14.5 and 16, separately for fall and spring. **The 50/50 odds are a deliberately neutral choice, not a measurement**; the stability percentages depend on them, and different odds would give different percentages.
 
 ## Sensitivity check (Monte Carlo)
 
@@ -50,11 +50,19 @@ The sensitivity check (below) treats three yes/no assumptions as coin flips with
 
 ### Practical advice: which meals you eat elsewhere
 
-For off-campus undergraduates choosing between the 5-meal plan and paying as you go, **the kind of meal you usually eat elsewhere matters as much as how many**:
+For off-campus undergraduates choosing between the 5-meal plan and paying as you go, **the kind of meal you usually eat elsewhere matters as much as how many**. The model has three settings for this: meals out spread over lunch, brunch and dinner (the main map), taken from dinners first, or taken from lunches first (then brunches, then dinners).
 
-- **If the meals you eat elsewhere are mostly dinners, lean toward paying as you go.** The 5-meal plan's swipes are worth the most on dinners ($21.40 at guest rates), so a student who eats dinner out has less to spend them on, and paying at the door for the lunches and brunches they do eat at HUDS ($17.30) is cheaper.
-- **If they are mostly lunches, lean toward the 5-meal plan.** The student still eats most dinners at HUDS, so all five swipes go on the most expensive meal and the plan is good value.
+- **If the meals you eat elsewhere are mostly dinners, lean toward paying as you go.** The 5-meal plan's swipes are worth the most on dinners ($21.40 at guest rates), so a student who eats dinner out has less to spend them on, and paying at the door for the lunches and brunches they do eat at HUDS ($17.30) is cheaper. Across the whole map, the 5-meal plan is cheapest in 272 of 1,320 squares, down from 534 on the main map.
+- **If they are mostly lunches, lean toward the 5-meal plan.** The student still eats most dinners at HUDS, so all five swipes go on the most expensive meal and the plan is good value. The 5-meal plan is cheapest in 786 of 1,320 squares.
 
-`figures/meals_out_comparison.png` shows this for a student away 2 weekends a term. With meals out spread over lunch, brunch and dinner (the main map), the 5-meal plan is cheapest in 49 of the 120 squares, up to about 6 meals eaten elsewhere a week. With meals out taken from dinners first, it is cheapest in only 26, up to about 3 a week, and paying as you go takes over the rest. The example student (4 meals elsewhere, 3 breakfasts skipped) switches from the 5-meal plan to paying as you go.
+`figures/meals_out_comparison.png` shows the three settings side by side for a student away 2 weekends a term:
 
-The dinners-first case is part of the model and the Monte Carlo check. The lunches-first direction follows from the same reasoning but is not a separate option in the model.
+| Meals eaten elsewhere | Squares where the 5-meal plan is cheapest (of 120) | It wins up to about … meals elsewhere a week | Example student (4 elsewhere, 3 breakfasts skipped) |
+|---|---|---|---|
+| Spread out (main map) | 49 | 6 | 5-meal plan, $156 a year cheaper than paying as you go |
+| Mostly dinners | 26 | 3 | Paying as you go, $84 a year cheaper |
+| Mostly lunches | 72 | 9 | 5-meal plan, $180 a year cheaper |
+
+For the example student, the 5-meal plan's yearly cost changes only a little ($6,780 spread or dinners first, $6,918 lunches first). The bigger swing is in paying as you go, which depends on what they still eat at HUDS: $6,937 spread out, $6,696 dinners first (they eat cheaper lunches and brunches at HUDS), and $7,098 lunches first (they eat their dinners at HUDS).
+
+**The Monte Carlo check only compared spread-out vs dinners-first** (50/50). Lunches first is not part of it, so the stability percentages above say nothing about it; it is shown here as a separate, deterministic comparison.

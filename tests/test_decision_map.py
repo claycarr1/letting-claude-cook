@@ -108,6 +108,39 @@ def test_dinners_first_patterns():
     assert normal.lunch == pytest.approx(20 / 7) and normal.brunch == pytest.approx(8 / 7)
 
 
+def test_lunches_first_patterns():
+    # 4 meals out, lunches first: 1 lunch left, both brunches, all 7 dinners.
+    normal, away = habits_to_patterns(4, 3, "lunches_first")
+    assert (normal.breakfast, normal.lunch, normal.brunch, normal.dinner) == (4, 1, 2, 7)
+    assert away.dinner == pytest.approx(5) and away.brunch == 0 and away.lunch == 1
+    # 6 meals out: no lunches, 1 brunch; 9 meals out: no lunches or brunches, 5 dinners.
+    six, _ = habits_to_patterns(6, 0, "lunches_first")
+    assert (six.lunch, six.brunch, six.dinner) == (0, 1, 7)
+    nine, _ = habits_to_patterns(9, 0, "lunches_first")
+    assert (nine.lunch, nine.brunch, nine.dinner) == (0, 0, 5)
+
+
+def test_example_student_lunches_first():
+    # Example student (4 meals out, 3 breakfasts skipped, 2 weekends away), real calendar,
+    # meals out taken from lunches first.
+    # Home week: 4 breakfasts, 1 lunch, 2 brunches, 7 dinners.
+    #   5-meal plan: swipes on 5 dinners; cash for 2 dinners + 1 lunch + 2 brunches + 4 breakfasts
+    #     = 42.80 + 17.30 + 34.60 + 43.36 = 138.06.
+    #   Paying as you go: 43.36 + 17.30 + 34.60 + 149.80 = 245.06.
+    # Away week: 20/7 breakfasts, 1 lunch, 5 dinners.
+    #   5-meal plan: swipes on the 5 dinners; cash for 1 lunch + 20/7 breakfasts = 17.30 + 30.9714 = 48.2714.
+    #   Paying as you go: 30.9714 + 17.30 + 107.00 = 155.2714.
+    # 185/7 home weeks and 4 away weeks over the year:
+    #   5-meal plan: 3076 + 138.06 x 185/7 + 48.2714 x 4 = 3076 + 3648.73 + 193.09 = 6917.81
+    #   Paying as you go: 245.06 x 185/7 + 155.2714 x 4 = 6476.59 + 621.09 = 7097.67
+    # So the 5-meal plan wins by 179.86 (vs losing by 83.72 with dinners first).
+    c = annual_costs(4, 3, 2, PRICES, ["nr5", "cash_guest"], meals_out_from="lunches_first")
+    assert c["nr5"] == pytest.approx(6917.81, abs=0.05)
+    assert c["cash_guest"] == pytest.approx(7097.67, abs=0.05)
+    r = recommend(4, 3, 2, PRICES, "undergrad_offcampus", meals_out_from="lunches_first")
+    assert r.plan == "nr5" and r.gap == pytest.approx(179.86, abs=0.05)
+
+
 def test_example_student_dinners_first():
     # Example student (4 meals out, 3 breakfasts skipped, 2 weekends away), real calendar
     # (fall 15 4/7 weeks, spring 14 6/7), meals out taken from dinners first.
@@ -173,17 +206,19 @@ def test_nr10_on_real_calendar():
     assert cheapest == 0
 
 
-def test_dinners_first_shrinks_the_5_meal_region():
+def test_which_meals_out_moves_the_5_meal_region():
     # The comparison figure (2 weekends away): taking meals out from dinners first leaves fewer
     # dinners for the 5-meal plan's swipes and makes paying as you go cheaper, so the 5-meal
-    # region shrinks and the pay-as-you-go region grows; the example student switches.
+    # region shrinks and the example student switches; lunches first does the opposite.
     from collections import Counter
     from decision_map import grid
 
     spread = Counter(c.plan for row in grid(2, PRICES, "undergrad_offcampus") for c in row)
     dinners = Counter(c.plan for row in grid(2, PRICES, "undergrad_offcampus", meals_out_from="dinners_first")
                       for c in row)
-    assert dinners["nr5"] < spread["nr5"]
-    assert dinners["cash_guest"] > spread["cash_guest"]
+    lunches = Counter(c.plan for row in grid(2, PRICES, "undergrad_offcampus", meals_out_from="lunches_first")
+                      for c in row)
+    assert dinners["nr5"] < spread["nr5"] < lunches["nr5"]
+    assert dinners["cash_guest"] > spread["cash_guest"] > lunches["cash_guest"]
     assert recommend(4, 3, 2, PRICES, "undergrad_offcampus").plan == "nr5"
     assert recommend(4, 3, 2, PRICES, "undergrad_offcampus", meals_out_from="dinners_first").plan == "cash_guest"

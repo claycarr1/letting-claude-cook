@@ -15,7 +15,8 @@ Assumptions (each needs to go in report.md):
   7 dinners. Skipped breakfasts come off breakfast. By default meals out come off the 14
   non-breakfast meals in proportion (5 lunch : 2 brunch : 7 dinner), so 14 meals out
   means no lunch, brunch or dinner at HUDS. meals_out_from="dinners_first" instead takes
-  them off dinners until none are left, then off lunches and brunches in proportion.
+  them off dinners until none are left, then off lunches and brunches in proportion;
+  meals_out_from="lunches_first" takes them off lunches, then brunches, then dinners.
 * A weekend away removes that week's Saturday and Sunday meals: both brunches and 2/7 of
   the week's breakfasts and dinners (skips and meals out are spread evenly over the week).
   Weeks with and without a weekend away are costed separately, so weekly swipe
@@ -89,7 +90,7 @@ def _check_range(name: str, value: float, bounds: Tuple[int, int]):
         raise ValueError(f"{name}={value} is outside {lo}..{hi}")
 
 
-MEALS_OUT_FROM = ("spread", "dinners_first")
+MEALS_OUT_FROM = ("spread", "dinners_first", "lunches_first")
 
 
 def habits_to_patterns(meals_out: float, breakfasts_skipped: float,
@@ -104,6 +105,11 @@ def habits_to_patterns(meals_out: float, breakfasts_skipped: float,
         dinner = 7 - min(meals_out, 7)
         keep = 1 - max(meals_out - 7, 0) / 7  # share of lunches and brunches still eaten at HUDS
         lunch, brunch = 5 * keep, 2 * keep
+    elif meals_out_from == "lunches_first":
+        # Midday meals first: the 5 weekday lunches, then the 2 weekend brunches, then dinners.
+        lunch = 5 - min(meals_out, 5)
+        brunch = 2 - min(max(meals_out - 5, 0), 2)
+        dinner = 7 - max(meals_out - 7, 0)
     else:
         raise ValueError(f"meals_out_from must be one of {MEALS_OUT_FROM}")
     breakfast = 7 - breakfasts_skipped
@@ -345,15 +351,16 @@ def plot_you_are_here(meals_out: float, breakfasts_skipped: float, weekends_away
 
 def plot_meals_out_comparison(prices: Prices, weekends_away: int = 2, group: str = "undergrad_offcampus",
                               example: Tuple[float, float] = (4, 3), **kw):
-    """Two maps side by side at one weekends-away level: meals out spread vs taken from dinners first."""
+    """Three maps side by side at one weekends-away level: meals out spread, dinners first, lunches first."""
     import matplotlib.pyplot as plt
 
     plans = GROUPS[group]
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.4), facecolor=SURFACE, layout="constrained")
+    fig, axes = plt.subplots(1, 3, figsize=(17, 4.4), facecolor=SURFACE, layout="constrained")
     shown = set()
     dot = (example[0] + 0.5, example[1] + 0.5)
-    for ax, how, title in [(axes[0], "spread", "Meals out spread over lunch, brunch & dinner (main map)"),
-                           (axes[1], "dinners_first", "Meals out taken from dinners first")]:
+    for ax, how, title in [(axes[0], "spread", "Spread over lunch, brunch & dinner (main map)"),
+                           (axes[1], "dinners_first", "Mostly dinners (dinners first)"),
+                           (axes[2], "lunches_first", "Mostly lunches (lunches, then brunches, first)")]:
         cells = grid(weekends_away, prices, group, meals_out_from=how, **kw)
         shown |= {c.plan for row in cells for c in row}
         _draw_panel(ax, cells, plans, title, avoid=(dot, (dot[0], dot[1] + 1)))
@@ -363,7 +370,7 @@ def plot_meals_out_comparison(prices: Prices, weekends_away: int = 2, group: str
                     ha="center", fontsize=8.5, color=INK, bbox=dict(boxstyle="round,pad=0.25", fc=SURFACE, ec="none"))
         ax.set_xlabel(X_LABEL, color=MUTED, fontsize=9)
     axes[0].set_ylabel(Y_LABEL, color=MUTED, fontsize=9)
-    _legend(axes[1], plans, shown, loc="upper left", bbox_to_anchor=(1.03, 1))
+    _legend(axes[2], plans, shown, loc="upper left", bbox_to_anchor=(1.03, 1))
     fig.suptitle(f"Which meals you eat elsewhere changes the answer ({GROUP_TITLES[group].lower()}, "
                  f"{_plural(weekends_away, 'weekend')} away per term)", color=INK, fontsize=12, x=0.01, ha="left")
     return fig
