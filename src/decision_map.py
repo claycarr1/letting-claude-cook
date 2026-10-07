@@ -185,6 +185,8 @@ SHORT_LABELS = {
     "resident": "Resident", "nr5": "NR 5", "nr10": "NR 10", "nr21": "NR 21",
     "gp_regular": "GP Reg", "gp_deluxe": "GP Deluxe", "cash_guest": "Cash", "cash_cafe": "Cash",
 }
+X_LABEL = "Lunches, brunches & dinners eaten elsewhere per week"  # the meals_out input
+Y_LABEL = "Breakfasts skipped or eaten elsewhere per week"  # the breakfasts_skipped input
 GROUP_TITLES = {
     "all": "Every plan on one map (as specified in the brief)",
     "undergrad_offcampus": "Undergraduates living off campus",
@@ -276,16 +278,20 @@ def plot_decision_map(prices: Prices, group: str, weekends_levels=range(WEEKENDS
     for ax in axes[len(levels):]:
         ax.axis("off")
     _legend(axes[len(levels)], plans, shown)
-    fig.supxlabel("Meals out per week (lunch, brunch or dinner not eaten at HUDS)", color=MUTED, fontsize=10)
-    fig.supylabel("Breakfasts skipped per week", color=MUTED, fontsize=10)
+    fig.supxlabel(X_LABEL, color=MUTED, fontsize=10)
+    fig.supylabel(Y_LABEL, color=MUTED, fontsize=10)
     fig.suptitle(f"Decision map: {GROUP_TITLES[group]}\nCheapest option per academic year, 2026-27 prices",
                  color=INK, fontsize=13, x=0.01, ha="left")
     return fig
 
 
+def _plural(n: float, word: str) -> str:
+    return f"{n:g} {word}" + ("" if n == 1 else "s")
+
+
 def plot_you_are_here(meals_out: float, breakfasts_skipped: float, weekends_away: int, prices: Prices,
-                      group: str, **kw):
-    """One map panel at the student's weekends-away level, with a dot at their habits and the answer."""
+                      group: str, label: str = "Example student", **kw):
+    """One map panel at the student's weekends-away level, with a labelled dot at their habits and the answer."""
     import matplotlib.pyplot as plt
 
     plans = GROUPS[group]
@@ -294,17 +300,19 @@ def plot_you_are_here(meals_out: float, breakfasts_skipped: float, weekends_away
     fig, ax = plt.subplots(figsize=(11, 5.6), facecolor=SURFACE, layout="constrained")
     dot = (meals_out + 0.5, breakfasts_skipped + 0.5)
     _draw_panel(ax, cells, plans, f"{GROUP_TITLES[group]}, {weekends_away} weekends away per term",
-                avoid=(dot, (dot[0], dot[1] + 1)))
+                avoid=(dot, (dot[0], dot[1] + 1), (dot[0], dot[1] + 2)))
     ax.plot(meals_out + 0.5, breakfasts_skipped + 0.5, "o", markersize=13, color=INK,
             markeredgecolor=SURFACE, markeredgewidth=2.5, zorder=5)
-    ax.annotate("You are here", (meals_out + 0.5, breakfasts_skipped + 0.5), xytext=(0, 14),
-                textcoords="offset points", ha="center", fontsize=9, color=INK, weight="bold",
-                bbox=dict(boxstyle="round,pad=0.2", fc=SURFACE, ec="none"))
-    ax.set_xlabel("Meals out per week", color=MUTED)
-    ax.set_ylabel("Breakfasts skipped per week", color=MUTED)
+    habits = (f"{_plural(meals_out, 'meal')} out, {_plural(breakfasts_skipped, 'breakfast')} skipped, "
+              f"{_plural(weekends_away, 'weekend')} away")
+    ax.annotate(f"{label}\n{habits}", dot, xytext=(0, 14), textcoords="offset points", ha="center",
+                fontsize=9, color=INK, linespacing=1.3,
+                bbox=dict(boxstyle="round,pad=0.3", fc=SURFACE, ec="none"))
+    ax.set_xlabel(X_LABEL, color=MUTED)
+    ax.set_ylabel(Y_LABEL, color=MUTED)
     # "\$" because matplotlib reads a pair of bare $ signs as maths notation.
     gap = "tied with" if rec.gap == 0 else f"\\${rec.gap:,.2f}/yr cheaper than"
-    fig.suptitle(f"Cheapest for you: {rec.label} (\\${rec.annual_cost:,.2f}/yr), {gap} {rec.runner_up_label}",
+    fig.suptitle(f"{label}: cheapest is {rec.label} (\\${rec.annual_cost:,.2f}/yr), {gap} {rec.runner_up_label}",
                  color=INK, fontsize=11, x=0.02, ha="left")
     _legend(ax, plans, {c.plan for row in cells for c in row}, loc="upper left", bbox_to_anchor=(1.03, 1),
             note_xy=(1.04, 1.0))

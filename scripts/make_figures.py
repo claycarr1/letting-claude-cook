@@ -3,12 +3,14 @@
 
 Usage:
   .venv/bin/python scripts/make_figures.py
-  .venv/bin/python scripts/make_figures.py --you-are-here 4 3 2 --group undergrad_offcampus
+  .venv/bin/python scripts/make_figures.py --you-are-here 4 3 2 --group undergrad_offcampus --label You
 
 Writes:
   figures/decision_map_<group>.png/.csv  for each group in MAP_GROUPS (one panel per weekends-away
                                          level; CSV has every cell's costs, cheapest plan and gap)
-  figures/you_are_here.png               the --you-are-here habits on their map
+  figures/you_are_here.png               the --you-are-here habits on their map (default: the
+                                         example student, 4 meals out, 3 breakfasts skipped,
+                                         2 weekends away)
   figures/on_campus_cost_per_meal.png/.csv  the mandatory unlimited plan's cost per meal eaten
 """
 
@@ -61,6 +63,8 @@ def main():
                     default=[4, 3, 2])
     ap.add_argument("--group", choices=MAP_GROUPS, default="undergrad_offcampus",
                     help="student group for the you-are-here figure")
+    ap.add_argument("--label", default="Example student",
+                    help='name shown at the dot, e.g. "You" when plotting your own habits')
     args = ap.parse_args()
 
     prices = load_prices()
@@ -72,7 +76,7 @@ def main():
         print(f"wrote figures/decision_map_{group}.png and .csv")
 
     mo, bs, we = args.you_are_here
-    fig = plot_you_are_here(mo, bs, int(we), prices, args.group)
+    fig = plot_you_are_here(mo, bs, int(we), prices, args.group, label=args.label)
     fig.savefig(OUT / "you_are_here.png", dpi=150, facecolor=fig.get_facecolor())
     print("wrote figures/you_are_here.png")
 
