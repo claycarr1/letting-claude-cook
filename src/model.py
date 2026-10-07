@@ -33,6 +33,8 @@ Modelling assumptions (each needs to go in report.md):
 import csv
 import re
 from dataclasses import dataclass, field
+from datetime import date
+from functools import lru_cache
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -143,11 +145,15 @@ def cost_cash_at_cafe(pattern: WeeklyPattern, weeks: float, cafe_meal_price: Opt
     return _result("no plan (cash at cafe)", pattern.total * weeks, 0.0, total, total, notes=notes)
 
 
-def cost_resident_unlimited(pattern: WeeklyPattern, weeks: float, prices: Prices) -> TermCost:
-    """Mandatory unlimited plan: half the annual board fee per term, less that term's BoardPlus."""
+def cost_resident_unlimited(pattern: WeeklyPattern, weeks: float, prices: Prices,
+                            count_boardplus: bool = True) -> TermCost:
+    """Mandatory unlimited plan: half the annual board fee per term, less that term's BoardPlus.
+
+    count_boardplus=False treats BoardPlus as worth nothing (a student who never spends it).
+    """
     _check_weeks(weeks)
     charge = prices.resident_board_fee_per_year / 2
-    credit = prices.boardplus_per_semester
+    credit = prices.boardplus_per_semester if count_boardplus else 0.0
     return _result("resident unlimited", pattern.total * weeks, charge, 0.0, charge - credit, credits=credit)
 
 
@@ -259,3 +265,42 @@ def load_prices(csv_path: Path = DEFAULT_CSV, year: str = "2026-27") -> Prices:
         },
         gradplus_discount=get("GradPlus: discount on purchases made with the plan") / 100,
     )
+
+
+# ---------------------------------------------------------------------------- term calendar
+
+# Dining halls close for spring break (HUDS FAQ: "dining hall closures such as spring break"),
+# but the saved pages don't give its dates, so one whole week is taken off spring.
+SPRING_BREAK_WEEKS = 1
+_MONTHS = {m: i for i, m in enumerate(
+    ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], start=1)}
+
+
+def _parse_term(text: str, start_year: int, end_year: int):
+    """'Sept 2 - Dec 19' -> (date, date)."""
+    m = re.fullmatch(r"\s*([A-Za-z]+)\.? (\d+)\s*-\s*([A-Za-z]+)\.? (\d+)\s*", text)
+    if not m:
+        raise ValueError(f"can't parse term dates {text!r}")
+    first = date(start_year, _MONTHS[m.group(1)[:3].lower()], int(m.group(2)))
+    last = date(end_year, _MONTHS[m.group(3)[:3].lower()], int(m.group(4)))
+    return first, last
+
+
+@lru_cache(maxsize=None)
+def load_term_weeks(csv_path: Path = DEFAULT_CSV, year: str = "2026-27") -> Dict[str, float]:
+    """Weeks of dining per term, from the non-resident term dates in the CSV.
+
+    Each term counts every day from its first to its last day inclusive, divided by 7, so a
+    short first week counts as a fraction of a week (fall starts on a Wednesday: 4/7). Spring
+    then loses SPRING_BREAK_WEEKS. Returns e.g. {"fall": 15.571, "spring": 14.857}.
+    """
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        rows = {r["item"]: r["value"] for r in csv.DictReader(f)}
+    fy = "FY" + year[2:4] + "-" + year[-2:]
+    y0, y1 = 2000 + int(year[2:4]), 2000 + int(year[-2:])
+    weeks = {}
+    for term, (a, b) in {"fall": (y0, y0), "spring": (y1, y1)}.items():
+        first, last = _parse_term(rows[f"Non-resident plans {fy}: {term} term dates"], a, b)
+        weeks[term] = ((last - first).days + 1) / 7
+    weeks["spring"] -= SPRING_BREAK_WEEKS
+    return weeks

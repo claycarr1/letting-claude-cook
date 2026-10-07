@@ -48,7 +48,7 @@ Pages to fetch:
 
 1. **Data collection:** agent fetches and parses the HUDS pages and the official board fee, records values with source URLs and fetch dates in a `data/` folder. Step 1 covers only these; Cambridge restaurant and grocery prices are gathered in a separate later step.
 2. **Deterministic model:** cost per meal eaten for each plan as a function of meals eaten per week by meal type, weeks on campus, and forfeiture rules. Pure, unit-tested functions.
-3. **Monte Carlo simulation (secondary):** simulate thousands of students with varied habits — breakfast skipping rate, weekend-away frequency, eat-out frequency, cooking share — and varied assumptions, including **weeks per term** (the result is sensitive to it: the 10-meal plan beats paying cash only above ~15.2 weeks and is never the cheapest option below ~16.1). Its job is now to show how sensitive the decision map (step 4) is to the model's assumptions, not to be the headline result.
+3. **Monte Carlo simulation (secondary):** simulate thousands of students with varied habits — breakfast skipping rate, weekend-away frequency, eat-out frequency, cooking share — and varied assumptions, including **weeks per term, varied from about 14.5 to 16** (the result is sensitive to it: the 10-meal plan beats paying cash only above ~15.2 weeks and is never the cheapest option below ~16.1). Its job is now to show how sensitive the decision map (step 4) is to the model's assumptions, not to be the headline result.
 4. **Decision map (main output):** for every combination of the three habit inputs (meals out per week, breakfasts skipped per week, weekends away per term), run every plan through the model and find the cheapest option and its dollar gap to the runner-up. Plot meals out vs breakfasts skipped with regions colored by the cheapest option, one panel per weekends-away level, with an optional "you are here" dot. Break-even points against (a) guest rates, (b) eating out at typical Cambridge prices, (c) cooking are read off the region boundaries. See "Decision map" below.
 5. **Validation:** compare model prediction to the user's actual swipe history (or survey data). Report error.
 6. **Write-up:** short report with figures (break-even curves, cost-per-meal distributions, tier recommendation by student type). Every figure reproducible from a script.
@@ -88,6 +88,9 @@ Python 3.9+. pandas, numpy, matplotlib (or plotly), pytest. Optional: requests +
 - Step 1 (data collection) = HUDS pages + official board fee only. Off-campus prices are a separate later step.
 - Restaurant prices come from a hand-collected sample of ~30 menus, not the Google Places API.
 - Resident board fee for 2026–27 is $8,942 (official; see Data section).
+- 21 meal times per week (7 breakfasts incl. weekend House breakfast, 5 lunches, 2 brunches, 7 dinners). Skipping weekend breakfast is handled by the breakfasts-skipped input.
+- Term length = actual term dates minus spring break: fall 109/7 = 15.57 weeks, spring 111/7 − 1 = 14.86 weeks (computed from the CSV by `model.load_term_weeks`). A short first week counts as a fraction of a week.
+- BoardPlus ($65/semester) is credited at face value; the on-campus chart also shows it unspent. The $65 is listed with 2025–26 dates and assumed to still apply.
 - dining.harvard.edu blocks scripted requests (HTTP 403). HUDS pages are saved from a browser into `data/raw/manual/` and parsed by `scripts/fetch_prices.py`, which verifies each page's canonical URL.
 
 ## Open questions for the user

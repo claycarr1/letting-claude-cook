@@ -1,9 +1,16 @@
-"""Hand-worked checks for src/decision_map.py (2026-27 prices pinned in test_model.PRICES)."""
+"""Hand-worked checks for src/decision_map.py (2026-27 prices pinned in test_model.PRICES).
+
+Most checks use two 15-week terms (TW15) so the arithmetic stays simple; the calendar
+tests at the bottom use the real term lengths from the CSV.
+"""
 
 import pytest
 
 from decision_map import annual_costs, habits_to_patterns, recommend
+from model import load_term_weeks
 from test_model import PRICES
+
+TW15 = {"fall": 15, "spring": 15}
 
 
 def test_habits_to_patterns():
@@ -21,7 +28,7 @@ def test_full_week_undergrad():
     # Every HUDS meal, no weekends away. NR 21: 2 x 4406 = 8812.
     # NR 5: swipes on 5 dinners; cash for 2 dinners + 5 lunches + 2 brunches + 7 breakfasts
     #   = 42.80 + 86.50 + 34.60 + 75.88 = 239.78/wk x 15 = 3596.70; term 5134.70; year 10269.40.
-    r = recommend(0, 0, 0, PRICES, "undergrad_offcampus")
+    r = recommend(0, 0, 0, PRICES, "undergrad_offcampus", term_weeks=TW15)
     assert r.plan == "nr21" and r.annual_cost == 8812
     assert r.runner_up == "nr5" and r.gap == pytest.approx(1457.40)
 
@@ -29,11 +36,11 @@ def test_full_week_undergrad():
 def test_nr5_vs_cash_boundary():
     # 6 meals out: 4 dinners, 2.857 lunches, 1.143 brunches. Swipes: 4 dinners + 1 lunch/brunch,
     #   worth 85.60 + 17.30 = 102.90/wk x 15 = 1543.50 > 1538 -> NR 5 wins by 5.50/term = 11.00/yr.
-    r = recommend(6, 7, 0, PRICES, "undergrad_offcampus")
+    r = recommend(6, 7, 0, PRICES, "undergrad_offcampus", term_weeks=TW15)
     assert r.plan == "nr5" and r.runner_up == "cash_guest" and r.gap == pytest.approx(11.00)
     # 7 meals out: 3.5 dinners + 1.5 lunch/brunch on swipes = 74.90 + 25.95 = 100.85/wk
     #   x 15 = 1512.75 < 1538 -> paying cash is 25.25/term = 50.50/yr cheaper.
-    r = recommend(7, 7, 0, PRICES, "undergrad_offcampus")
+    r = recommend(7, 7, 0, PRICES, "undergrad_offcampus", term_weeks=TW15)
     assert r.plan == "cash_guest" and r.gap == pytest.approx(50.50)
 
 
@@ -43,7 +50,7 @@ def test_nr10_never_beats_cash():
     for weekends in (0, 5, 10):
         for meals_out in range(15):
             for skipped in range(8):
-                c = annual_costs(meals_out, skipped, weekends, PRICES, ["nr10", "cash_guest"])
+                c = annual_costs(meals_out, skipped, weekends, PRICES, ["nr10", "cash_guest"], term_weeks=TW15)
                 assert c["cash_guest"] < c["nr10"]
 
 
@@ -53,7 +60,7 @@ def test_weekend_away_weeks_costed_separately():
     #   + 2 brunches = 42.80 + 86.50 + 34.60 = 163.90, for 14 weeks = 2294.60.
     # Away week: 5 dinners, 5 lunches; swipes on the dinners, cash for 5 lunches = 86.50.
     # Term = 1538 + 2294.60 + 86.50 = 3919.10; year = 7838.20.
-    c = annual_costs(0, 7, 1, PRICES, ["nr5"])
+    c = annual_costs(0, 7, 1, PRICES, ["nr5"], term_weeks=TW15)
     assert c["nr5"] == pytest.approx(7838.20)
 
 
@@ -61,20 +68,20 @@ def test_grad_full_week():
     # 21 meals/wk x 15 x 12.50 (estimate) = 3937.50 per term in cash, 7875 per year.
     # Each GradPlus balance is fully spent, saving 10% of what it buys: Regular saves
     # (400 + 500) / 0.9 x 0.1 = 100, Deluxe (600 + 750) / 0.9 x 0.1 = 150.
-    r = recommend(0, 0, 0, PRICES, "grad")
+    r = recommend(0, 0, 0, PRICES, "grad", term_weeks=TW15)
     assert r.costs == pytest.approx({"gp_regular": 7775, "gp_deluxe": 7725, "cash_cafe": 7875})
     assert r.plan == "gp_deluxe" and r.gap == pytest.approx(50)
 
 
 def test_no_meals_at_all():
     # 14 meals out and every breakfast skipped: nothing eaten at HUDS, so paying cash costs 0.
-    r = recommend(14, 7, 10, PRICES, "undergrad_offcampus")
+    r = recommend(14, 7, 10, PRICES, "undergrad_offcampus", term_weeks=TW15)
     assert r.plan == "cash_guest" and r.annual_cost == 0
     assert r.runner_up == "nr5" and r.gap == 2 * 1538
 
 
 def test_resident_ties_nr21_on_the_all_map():
-    c = annual_costs(0, 0, 0, PRICES, ["resident", "nr21"])
+    c = annual_costs(0, 0, 0, PRICES, ["resident", "nr21"], term_weeks=TW15)
     assert c["resident"] == c["nr21"] == 8812
 
 
@@ -86,4 +93,37 @@ def test_inputs_out_of_range(args):
 
 def test_unknown_group():
     with pytest.raises(ValueError):
-        recommend(0, 0, 0, PRICES, "faculty")
+        recommend(0, 0, 0, PRICES, "faculty", term_weeks=TW15)
+
+
+# ---------------------------------------------------------------- real calendar (2026-27)
+
+def test_term_weeks_from_csv():
+    # Fall: Wed Sept 2 - Sat Dec 19 2026 = 109 days = 15 4/7 weeks.
+    # Spring: Mon Jan 25 - Sat May 15 2027 = 111 days = 15 6/7 weeks, minus 1 spring-break week = 14 6/7.
+    w = load_term_weeks()
+    assert w["fall"] == pytest.approx(109 / 7)
+    assert w["spring"] == pytest.approx(111 / 7 - 1)
+
+
+def test_full_week_on_real_calendar():
+    # NR 21 is a flat 4406 per term whatever the length: 8812 per year.
+    # Paying guest rates for all 21 meals: 346.78/wk x (109/7 + 104/7 = 213/7 weeks) = 10552.31.
+    c = annual_costs(0, 0, 0, PRICES, ["nr21", "cash_guest"])
+    assert c["nr21"] == 8812
+    assert c["cash_guest"] == pytest.approx(346.78 * 213 / 7, abs=0.01)
+
+
+def test_nr10_on_real_calendar():
+    # 10 swipes are worth at most 201.70/wk. Fall (15.57 wk) -> 3140.76 > 3060, so a heavy eater
+    # beats cash in fall; spring (14.86 wk) -> 2996.40 < 3060, so cash wins in spring. Over the
+    # year NR 10 can beat cash, but NR 5 or NR 21 is still cheaper everywhere on the map.
+    beats_cash = cheapest = 0
+    for weekends in range(11):
+        for meals_out in range(15):
+            for skipped in range(8):
+                c = annual_costs(meals_out, skipped, weekends, PRICES, ["nr5", "nr10", "nr21", "cash_guest"])
+                beats_cash += c["nr10"] < c["cash_guest"]
+                cheapest += min(c, key=c.get) == "nr10"
+    assert beats_cash > 0
+    assert cheapest == 0

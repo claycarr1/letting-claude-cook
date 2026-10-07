@@ -56,6 +56,13 @@ def test_resident_half_of_meals():
     assert r.cost_per_meal == pytest.approx(27.9746, abs=1e-4)
 
 
+def test_resident_without_boardplus():
+    # A student who never spends BoardPlus: the full 4471 per term; 4471 / 315 = 14.1937
+    r = cost_resident_unlimited(EVERY_MEAL, WEEKS, PRICES, count_boardplus=False)
+    assert r.credits == 0 and r.total_cost == 4471
+    assert r.cost_per_meal == pytest.approx(14.1937, abs=1e-4)
+
+
 def test_resident_no_meals_has_no_cost_per_meal():
     r = cost_resident_unlimited(WeeklyPattern(), WEEKS, PRICES)
     assert r.total_cost == 4406 and r.cost_per_meal is None

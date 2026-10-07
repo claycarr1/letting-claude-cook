@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Generate the decision-map figures (PNG) and their data tables (CSV) in figures/.
+"""Generate every figure (PNG) and its data table (CSV) in figures/.
 
 Usage:
-  .venv/bin/python scripts/make_decision_map.py
-  .venv/bin/python scripts/make_decision_map.py --you-are-here 4 3 2 --group undergrad_offcampus
+  .venv/bin/python scripts/make_figures.py
+  .venv/bin/python scripts/make_figures.py --you-are-here 4 3 2 --group undergrad_offcampus
 
-Writes, for each student group in src/decision_map.GROUPS:
-  figures/decision_map_<group>.png   one panel per weekends-away level
-  figures/decision_map_<group>.csv   every cell: inputs, cheapest plan, cost, runner-up, gap, all costs
-and figures/you_are_here.png for the --you-are-here habits.
+Writes:
+  figures/decision_map_<group>.png/.csv  for each group in MAP_GROUPS (one panel per weekends-away
+                                         level; CSV has every cell's costs, cheapest plan and gap)
+  figures/you_are_here.png               the --you-are-here habits on their map
+  figures/on_campus_cost_per_meal.png/.csv  the mandatory unlimited plan's cost per meal eaten
 """
 
 import argparse
@@ -33,8 +34,11 @@ from decision_map import (  # noqa: E402
     recommend,
 )
 from model import load_prices  # noqa: E402
+from on_campus import FULL_WEEK, plot_on_campus, resident_cost_per_meal  # noqa: E402
 
 OUT = ROOT / "figures"
+# The all-plans map is deliberately not drawn: mixing student groups is misleading (see report.md).
+MAP_GROUPS = ["undergrad_offcampus", "grad"]
 
 
 def write_table(prices, group, path):
@@ -55,13 +59,13 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--you-are-here", nargs=3, type=float, metavar=("MEALS_OUT", "BREAKFASTS_SKIPPED", "WEEKENDS_AWAY"),
                     default=[4, 3, 2])
-    ap.add_argument("--group", choices=sorted(GROUPS), default="undergrad_offcampus",
+    ap.add_argument("--group", choices=MAP_GROUPS, default="undergrad_offcampus",
                     help="student group for the you-are-here figure")
     args = ap.parse_args()
 
     prices = load_prices()
     OUT.mkdir(exist_ok=True)
-    for group in GROUPS:
+    for group in MAP_GROUPS:
         fig = plot_decision_map(prices, group)
         fig.savefig(OUT / f"decision_map_{group}.png", dpi=150, facecolor=fig.get_facecolor())
         write_table(prices, group, OUT / f"decision_map_{group}.csv")
@@ -71,6 +75,16 @@ def main():
     fig = plot_you_are_here(mo, bs, int(we), prices, args.group)
     fig.savefig(OUT / "you_are_here.png", dpi=150, facecolor=fig.get_facecolor())
     print("wrote figures/you_are_here.png")
+
+    fig = plot_on_campus(prices)
+    fig.savefig(OUT / "on_campus_cost_per_meal.png", dpi=150, facecolor=fig.get_facecolor())
+    with (OUT / "on_campus_cost_per_meal.csv").open("w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["meals_per_week", "cost_per_meal_boardplus_spent", "cost_per_meal_boardplus_unspent"])
+        for m in range(1, FULL_WEEK + 1):
+            w.writerow([m, round(resident_cost_per_meal(m, prices), 2),
+                        round(resident_cost_per_meal(m, prices, count_boardplus=False), 2)])
+    print("wrote figures/on_campus_cost_per_meal.png and .csv")
 
 
 if __name__ == "__main__":

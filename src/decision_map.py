@@ -21,7 +21,9 @@ Assumptions (each needs to go in report.md):
   forfeiture on the non-resident plans is counted correctly.
 * Meals out cost the same whichever plan you hold, so they don't change which plan
   is cheapest and aren't priced here.
-* Both terms are WEEKS_PER_TERM weeks long, with the same habits.
+* Term lengths come from the CSV term dates (model.load_term_weeks): fall 15.57 weeks,
+  spring 14.86 (one spring-break week removed). Same habits in both terms. A short first
+  week counts as a fraction of a week, with that fraction of the weekly meals and swipes.
 """
 
 from dataclasses import dataclass
@@ -35,9 +37,9 @@ from model import (
     cost_no_plan,
     cost_non_resident,
     cost_resident_unlimited,
+    load_term_weeks,
 )
 
-WEEKS_PER_TERM = 15
 MEALS_OUT_RANGE = (0, 14)
 BREAKFASTS_SKIPPED_RANGE = (0, 7)
 WEEKENDS_AWAY_RANGE = (0, 10)
@@ -102,40 +104,47 @@ def _average(normal: WeeklyPattern, away: WeeklyPattern, weeks: float, weeks_awa
 
 
 def annual_costs(meals_out: float, breakfasts_skipped: float, weekends_away: float, prices: Prices,
-                 plans: Optional[List[str]] = None, weeks_per_term: float = WEEKS_PER_TERM,
+                 plans: Optional[List[str]] = None, term_weeks: Optional[Dict[str, float]] = None,
                  cafe_meal_price: Optional[float] = None) -> Dict[str, float]:
-    """Cost per academic year (USD) of each plan for these habits."""
+    """Cost per academic year (USD) of each plan for these habits.
+
+    term_weeks gives the weeks of dining in each term, e.g. {"fall": 15.57, "spring": 14.86};
+    by default it comes from the term dates in data/huds_prices.csv (model.load_term_weeks).
+    """
     _check_range("weekends_away", weekends_away, WEEKENDS_AWAY_RANGE)
-    if weekends_away >= weeks_per_term:
+    term_weeks = term_weeks or load_term_weeks()
+    if any(weekends_away >= w for w in term_weeks.values()):
         raise ValueError("need at least one week on campus per term")
     plans = plans or GROUPS["all"]
     normal, away = habits_to_patterns(meals_out, breakfasts_skipped)
-    home_weeks = weeks_per_term - weekends_away
 
-    def per_term(cost_fn) -> float:
-        # The plan charge is counted once; the cash for meals outside the plan in each kind of
-        # week is added up. Valid for every plan whose balance resets weekly or never.
-        r = cost_fn(normal, home_weeks)
-        term = r.plan_charge - r.credits + r.extra_cash
-        if weekends_away:
-            term += cost_fn(away, weekends_away).extra_cash
-        return term
+    def year(cost_fn) -> float:
+        # Per term, the plan charge is counted once and the cash for meals outside the plan in
+        # each kind of week is added up. Valid for every plan whose balance resets weekly or never.
+        total = 0.0
+        for weeks in term_weeks.values():
+            r = cost_fn(normal, weeks - weekends_away)
+            total += r.plan_charge - r.credits + r.extra_cash
+            if weekends_away:
+                total += cost_fn(away, weekends_away).extra_cash
+        return total
 
     def gradplus_year(tier: str) -> float:
         # GradPlus spends one balance over the whole term, so the averaged pattern is exact.
-        avg = _average(normal, away, weeks_per_term, weekends_away)
-        fall = cost_gradplus(avg, weeks_per_term, prices, tier, "fall", cafe_meal_price=cafe_meal_price)
-        spring = cost_gradplus(avg, weeks_per_term, prices, tier, "spring", carry_in=fall.carry_out,
-                               cafe_meal_price=cafe_meal_price)
+        fall_w, spring_w = term_weeks["fall"], term_weeks["spring"]
+        fall = cost_gradplus(_average(normal, away, fall_w, weekends_away), fall_w, prices, tier, "fall",
+                             cafe_meal_price=cafe_meal_price)
+        spring = cost_gradplus(_average(normal, away, spring_w, weekends_away), spring_w, prices, tier, "spring",
+                               carry_in=fall.carry_out, cafe_meal_price=cafe_meal_price)
         return fall.total_cost + spring.total_cost
 
     calc = {
-        "resident": lambda: 2 * per_term(lambda p, w: cost_resident_unlimited(p, w, prices)),
-        "nr5": lambda: 2 * per_term(lambda p, w: cost_non_resident(p, w, prices, 5)),
-        "nr10": lambda: 2 * per_term(lambda p, w: cost_non_resident(p, w, prices, 10)),
-        "nr21": lambda: 2 * per_term(lambda p, w: cost_non_resident(p, w, prices, 21)),
-        "cash_guest": lambda: 2 * per_term(lambda p, w: cost_no_plan(p, w, prices)),
-        "cash_cafe": lambda: 2 * per_term(lambda p, w: cost_cash_at_cafe(p, w, cafe_meal_price)),
+        "resident": lambda: year(lambda p, w: cost_resident_unlimited(p, w, prices)),
+        "nr5": lambda: year(lambda p, w: cost_non_resident(p, w, prices, 5)),
+        "nr10": lambda: year(lambda p, w: cost_non_resident(p, w, prices, 10)),
+        "nr21": lambda: year(lambda p, w: cost_non_resident(p, w, prices, 21)),
+        "cash_guest": lambda: year(lambda p, w: cost_no_plan(p, w, prices)),
+        "cash_cafe": lambda: year(lambda p, w: cost_cash_at_cafe(p, w, cafe_meal_price)),
         "gp_regular": lambda: gradplus_year("regular"),
         "gp_deluxe": lambda: gradplus_year("deluxe"),
     }
