@@ -35,6 +35,45 @@ Pages to fetch:
 
 **Guest meal rates (2026–27, incl. 7% tax):** breakfast ~$10.84 (Houses) / ~$12.90 (Annenberg & Quincy Mon–Sat); brunch and lunch ~$17.30; dinner ~$21.40. Source: HUDS undergraduate FAQ page.
 
-**Grad student GradPlus plan:** Regular $100/month, Deluxe $150/month, declining balance, 10% discount on purchases at HUDS cafes, unused balance forfeited at end of academic year. Some GSAS residents also
+**Grad student GradPlus plan:** Regular $100/month, Deluxe $150/month, declining balance, 10% discount on purchases at HUDS cafes, unused balance forfeited at end of academic year. Some GSAS residents also have a required Commons at Lehman Hall plan (~$3,190/yr, lunch and dinner weekdays).
 
-> **[INCOMPLETE — the brief was cut off here when pasted. The rest of this section and any later sections (e.g. build order) are still to come from the user.]**
+**Off-campus alternatives (to collect in a later step):**
+- Restaurant prices near Harvard Square / Central Square: Google Places price levels and, where possible, menu prices for typical student meals. Tag by meal type.
+- Grocery/cooking cost per meal: BLS or USDA food cost data for the Boston metro, plus a small basket priced at local stores (Star Market, Trader Joe's, Market Basket) if feasible.
+- Meal delivery markup (optional).
+
+**Validation data:** the user's own swipe history if it can be exported from the Harvard dining/Crimson Cash portal. Also consider a small survey of friends' weekly dining-hall meal counts.
+
+## Method
+
+1. **Data collection:** agent fetches and parses the HUDS pages, records values with source URLs and fetch dates in a `data/` folder. Gathers Cambridge restaurant and grocery prices.
+2. **Deterministic model:** cost per meal eaten for each plan as a function of meals eaten per week by meal type, weeks on campus, and forfeiture rules. Pure, unit-tested functions.
+3. **Monte Carlo simulation:** simulate thousands of students with varied habits — breakfast skipping rate, weekend-away frequency, eat-out frequency, cooking share, term length. Compute total food cost per term under each plan vs. the no-plan alternative.
+4. **Break-even analysis:** for each plan, the utilization at which it beats (a) guest rates, (b) eating out at typical Cambridge prices, (c) cooking. Sensitivity analysis on the key assumptions.
+5. **Validation:** compare model prediction to the user's actual swipe history (or survey data). Report error.
+6. **Write-up:** short report with figures (break-even curves, cost-per-meal distributions, tier recommendation by student type). Every figure reproducible from a script.
+
+## Deliverables
+
+- `data/` with raw fetched data + provenance
+- `src/` model and simulation code, `tests/` unit tests
+- `notebooks/` or `scripts/` that regenerate all figures
+- `report.md` with findings, assumptions, limitations
+- README explaining how to reproduce everything with one command
+
+## Tech
+
+Python 3.11+. pandas, numpy, matplotlib (or plotly), pytest. Optional: requests + BeautifulSoup for fetching HUDS pages. Keep it simple; no web app.
+
+## Decisions already made
+
+- Domain: Harvard dining, all three plan types (resident unlimited, non-resident tiers, grad declining balance).
+- Off-campus comparison uses real Cambridge price data, not national averages alone.
+- Everything must be reproducible; document every assumption in `report.md`.
+- The earlier restaurant-recommender app and student-discount tracker are dropped. Do not build them.
+
+## Open questions for the user
+
+- Confirm the official resident board fee for 2026–27.
+- Can the user export their own swipe history?
+- Does the user want restaurant price data via Google Places API (needs a key) or a hand-collected sample of ~30 menus?
