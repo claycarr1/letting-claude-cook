@@ -1,69 +1,40 @@
-# Project Brief — Student Restaurant Recommender (working name: Campus Eats)
+# Project Brief — Is Harvard's Meal Plan Worth It?
 
-This file summarizes all decisions made so far. Read it fully before making changes. Ask the user before deviating from any decision below.
+This file is the source of truth for the project. Read it fully before making changes. Ask the user before deviating from any decision below. This REPLACES an earlier brief about a restaurant recommender app; that project is cancelled.
 
-## What we're building
+## Assignment context
 
-A mobile-friendly web app for college students in college towns. The user picks a city (start: Boston/Cambridge), optionally a cuisine or "what's popular," and gets a short list of great restaurants with photos, price, and a blended **student score** that balances food quality against value.
+Course project. Requirement: a scientific/quantitative question investigated by having AI agents write and execute code as the primary mode of investigation, with results that can be checked. Sample projects included physics simulations, data pipelines, and reproducing published results. The instructor is flexible on domain but the work must be a real investigation with a hypothesis, model, data, and verifiable output. Not a product or app.
 
-Core differentiator: cross-referencing multiple rating sources (Google Places, later Yelp) with a **hand-curated Beli layer** and **student-value signals**, ranked under one fair scoring rule.
+## Research question
 
-The project started as a student-discount tracker. That idea is now folded in as one tag among several, not a headline feature.
+Given realistic student eating patterns, what is the true cost per meal eaten under each Harvard dining option, and at what utilization does each plan beat eating off-campus or cooking in Cambridge?
 
-## Decisions already made
+Sub-questions:
+1. For on-campus undergrads (mandatory unlimited plan): what does the plan implicitly cost per meal actually eaten, and how does that compare to what those meals would cost at guest rates, off campus, or cooked?
+2. For non-resident undergrads (choice of 5/10/21 meals per week): which tier is optimal for which eating pattern, and how badly does weekly swipe forfeiture hurt the small plans?
+3. For grad students (declining balance): what usage makes the Regular vs Deluxe plan worthwhile given the 10% discount and year-end forfeiture?
 
-- **Platform:** mobile-friendly web app (user has no preference between web/native; web chosen for speed and shareability).
-- **Stack:** Next.js (React) with API routes, Supabase (Postgres) for the database, Google Places API (New) for live restaurant data, deployed on Vercel. All work lives in a GitHub repo.
-- **First city:** Boston/Cambridge only. Multi-city is a later phase.
-- **Beli:** no public API, no connector, and scraping violates their terms. **Do not scrape Beli.** Beli scores are entered manually via an admin/curation page, or transcribed from the user's screenshots into seed data. Expect 20–40 curated places per city.
-- **Student discounts:** kept as a tag/filter, not the main feature. Most Beli-ranked (nicer) places won't have one, so a discount-only filter would be nearly empty.
-- **Value:** the app must keep value picks in mind. Budget is a user setting (cheap eats / worth the splurge / any) that shifts scoring weights, not a hard filter.
+Working hypothesis: the small non-resident plans are priced at roughly the guest meal rate, so they only beat paying cash if nearly every swipe is used; the 21-meal plan and the unlimited plan are cheap per meal only for heavy dining-hall users.
 
-## Data model (proposed)
+## Data — VERIFY EACH VALUE IN CODE BY FETCHING THE PAGE, DON'T HARDCODE FROM THIS FILE
 
-**places**
-- id, google_place_id, name, address, lat, lng
-- cuisine (array), price_level (1–4, from Google)
-- google_rating, google_review_count
-- beli_score (nullable, manual), beli_url (nullable)
-- nearest_campus (enum: Harvard Sq, Central/Kendall, Fenway/Kenmore, Allston/Brighton, Downtown/Chinatown, Other)
-- photo refs (from Google Places), hours
-- cached_at (Google data is cached; don't call the API on every search)
+Pages to fetch:
+- https://www.dining.harvard.edu/undergraduate-dining/meal-plans
+- https://www.dining.harvard.edu/undergraduate-dining/faqs
+- https://www.dining.harvard.edu/graduate-professional-dining/meal-plans
 
-**value_tags** (many-to-many with places)
-- student_discount, lunch_special, happy_hour, byob, late_night, big_portions
+**Undergraduate resident plan (2026–27):** mandatory unlimited swipes at 13 dining halls for all undergrads living on campus. Includes $65 BoardPlus per semester (expires end of year). Annual board fee: a third-party site reports ~$8,268 for 2026; CONFIRM from Harvard College's official cost-of-attendance page before using.
 
-**deals** (optional detail for student_discount)
-- place_id, description, verification (student_id | edu_email | unidays | school_specific), expires_at (nullable), last_confirmed, works_votes, fails_votes, source_url
+**Non-resident undergrad plans (FY26–27, per term):**
+- 5 meals/week: $1,538
+- 10 meals/week: $3,060
+- 21 meals/week: $4,406
+- One swipe per meal period; unused meals forfeited weekly after Saturday dinner. Non-refundable.
+- Fall term Sept 2 – Dec 19, Spring Jan 25 – May 15.
 
-## Scoring (the heart of the app)
+**Guest meal rates (2026–27, incl. 7% tax):** breakfast ~$10.84 (Houses) / ~$12.90 (Annenberg & Quincy Mon–Sat); brunch and lunch ~$17.30; dinner ~$21.40. Source: HUDS undergraduate FAQ page.
 
-- **Quality score (0–10):** Google rating weighted by review count (a 4.6 with 1,200 reviews beats a 4.8 with 40), boosted when a Beli score exists.
-- **Value score (0–10):** starts from price_level, bumped up for each value tag present. A $$$ place with a lunch special can rank near a $$ place with none.
-- **Student score:** blend of the two. User's budget setting shifts the weights — "cheap eats" leans value, "worth the splurge" leans quality, "any" is balanced.
-- Show both sub-scores on each result card so users see *why* it ranked where it did.
+**Grad student GradPlus plan:** Regular $100/month, Deluxe $150/month, declining balance, 10% discount on purchases at HUDS cafes, unused balance forfeited at end of academic year. Some GSAS residents also
 
-Keep scoring in one pure, testable function.
-
-## Build order
-
-1. Project scaffold (Next.js, Supabase client, env setup, README).
-2. Data layer: places schema, Google Places fetch + caching.
-3. Scoring function with unit tests.
-4. Search UI: city picker, cuisine chips, "what's popular," budget toggle. Results as photo cards with student score, price, distance to campus, tags.
-5. Detail view: photos, hours, score breakdown, deal details if any, links out to Google/Beli.
-6. Admin/curation page: look up a place via Google, add Beli score, value tags, and deals. This is how new cities get launched.
-7. Later: Yelp Fusion as a second rating source, map view, more cities, saved places, expiration alerts for deals.
-
-## Things the user still needs to do
-
-- Create a Google Cloud project, enable Places API (New), get an API key (needs a card on file; free credit covers a student project).
-- Set up a Supabase project and share the URL + anon key via `.env.local` (never commit it).
-- Provide their Beli list (screenshots are fine) for the Boston/Cambridge seed — aim for 20–30 places.
-- Identify 10–15 real Boston student deals to seed.
-
-## Open questions
-
-- Final app name.
-- Whether to require accounts for submitting deals/votes (leaning no for v1; show new submissions as "unverified").
-- Whether to add Yelp in v1 or hold for v2 (leaning v2).
+> **[INCOMPLETE — the brief was cut off here when pasted. The rest of this section and any later sections (e.g. build order) are still to come from the user.]**
