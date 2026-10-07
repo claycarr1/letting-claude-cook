@@ -171,3 +171,19 @@ def test_nr10_on_real_calendar():
                 cheapest += min(c, key=c.get) == "nr10"
     assert beats_cash > 0
     assert cheapest == 0
+
+
+def test_dinners_first_shrinks_the_5_meal_region():
+    # The comparison figure (2 weekends away): taking meals out from dinners first leaves fewer
+    # dinners for the 5-meal plan's swipes and makes paying as you go cheaper, so the 5-meal
+    # region shrinks and the pay-as-you-go region grows; the example student switches.
+    from collections import Counter
+    from decision_map import grid
+
+    spread = Counter(c.plan for row in grid(2, PRICES, "undergrad_offcampus") for c in row)
+    dinners = Counter(c.plan for row in grid(2, PRICES, "undergrad_offcampus", meals_out_from="dinners_first")
+                      for c in row)
+    assert dinners["nr5"] < spread["nr5"]
+    assert dinners["cash_guest"] > spread["cash_guest"]
+    assert recommend(4, 3, 2, PRICES, "undergrad_offcampus").plan == "nr5"
+    assert recommend(4, 3, 2, PRICES, "undergrad_offcampus", meals_out_from="dinners_first").plan == "cash_guest"

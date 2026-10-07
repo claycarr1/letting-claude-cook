@@ -8,6 +8,7 @@ Usage:
 Writes:
   figures/decision_map_<group>.png/.csv  for each group in MAP_GROUPS (one panel per weekends-away
                                          level; CSV has every cell's costs, cheapest plan and gap)
+  figures/meals_out_comparison.png       main map vs meals out taken from dinners first, 2 weekends away
   figures/you_are_here.png               the --you-are-here habits on their map (default: the
                                          example student, 4 meals out, 3 breakfasts skipped,
                                          2 weekends away)
@@ -34,6 +35,7 @@ from decision_map import (  # noqa: E402
     MEALS_OUT_RANGE,
     WEEKENDS_AWAY_RANGE,
     plot_decision_map,
+    plot_meals_out_comparison,
     plot_you_are_here,
     recommend,
 )
@@ -77,6 +79,10 @@ def main():
         fig.savefig(OUT / f"decision_map_{group}.png", dpi=150, facecolor=fig.get_facecolor())
         write_table(prices, group, OUT / f"decision_map_{group}.csv")
         print(f"wrote figures/decision_map_{group}.png and .csv")
+
+    fig = plot_meals_out_comparison(prices)
+    fig.savefig(OUT / "meals_out_comparison.png", dpi=150, facecolor=fig.get_facecolor())
+    print("wrote figures/meals_out_comparison.png")
 
     mo, bs, we = args.you_are_here
     fig = plot_you_are_here(mo, bs, int(we), prices, args.group, label=args.label)

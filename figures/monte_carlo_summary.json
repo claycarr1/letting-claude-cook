@@ -2,7 +2,7 @@
   "runs": 2000,
   "seed": 2026,
   "squares": 1320,
-  "seconds": 30.7,
+  "seconds": 28.4,
   "mean_stability": 0.8647397727272743,
   "squares_95_or_more": 806,
   "squares_80_to_95": 153,

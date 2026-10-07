@@ -47,3 +47,14 @@ The sensitivity check (below) treats three yes/no assumptions as coin flips with
 - **The 10-meal plan never won a single square in any of the 2,000 runs.**
 - **Example student** (4 meals elsewhere, 3 breakfasts skipped, 2 weekends away): the 5-meal plan stays cheapest in 59% of runs; otherwise paying as you go wins. With meals out taken from dinners first, the 5-meal plan costs the same ($6,780) but paying as you go drops from $6,937 to $6,696 a year, because the student now eats 3 dinners and 7 lunches/brunches a week at HUDS instead of 5 and 5.
 - **On-campus undergraduates:** across the runs, the unlimited plan beats paying the guest dinner price above 13.2–14.1 meals a week, and the guest lunch price above 16.3–17.4 meals a week (5th–95th percentile). The shaded band on `figures/on_campus_cost_per_meal.png` shows the range of cost per meal.
+
+### Practical advice: which meals you eat elsewhere
+
+For off-campus undergraduates choosing between the 5-meal plan and paying as you go, **the kind of meal you usually eat elsewhere matters as much as how many**:
+
+- **If the meals you eat elsewhere are mostly dinners, lean toward paying as you go.** The 5-meal plan's swipes are worth the most on dinners ($21.40 at guest rates), so a student who eats dinner out has less to spend them on, and paying at the door for the lunches and brunches they do eat at HUDS ($17.30) is cheaper.
+- **If they are mostly lunches, lean toward the 5-meal plan.** The student still eats most dinners at HUDS, so all five swipes go on the most expensive meal and the plan is good value.
+
+`figures/meals_out_comparison.png` shows this for a student away 2 weekends a term. With meals out spread over lunch, brunch and dinner (the main map), the 5-meal plan is cheapest in 49 of the 120 squares, up to about 6 meals eaten elsewhere a week. With meals out taken from dinners first, it is cheapest in only 26, up to about 3 a week, and paying as you go takes over the rest. The example student (4 meals elsewhere, 3 breakfasts skipped) switches from the 5-meal plan to paying as you go.
+
+The dinners-first case is part of the model and the Monte Carlo check. The lunches-first direction follows from the same reasoning but is not a separate option in the model.

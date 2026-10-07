@@ -267,7 +267,7 @@ def _draw_panel(ax, cells: List[List[Recommendation]], plans: List[str], title: 
                 path_effects=[patheffects.withStroke(linewidth=2.5, foreground=SURFACE)])
 
 
-def _legend(ax, plans: List[str], shown: set, note_xy: Tuple[float, float] = (0.0, 0.5), **kw):
+def _legend(ax, plans: List[str], shown: set, **kw):
     """Legend of the options that win somewhere; the rest are listed as text, not given a swatch."""
     from matplotlib.patches import Patch
 
@@ -278,8 +278,9 @@ def _legend(ax, plans: List[str], shown: set, note_xy: Tuple[float, float] = (0.
     leg = ax.legend(handles=handles, frameon=False, fontsize=9, labelcolor=INK,
                     title="Cheapest option", title_fontsize=10, alignment="left", **kw)
     if never:
-        ax.text(note_xy[0], note_xy[1] - 0.05 * (len(handles) + 2), "Never cheapest:\n" + "\n".join(never),
-                transform=ax.transAxes, fontsize=8.5, color=MUTED, va="top")
+        # Anchored to the legend's own bottom-left corner, so it sits just below it at any figure size.
+        ax.annotate("Never cheapest:\n" + "\n".join(never), xy=(0, 0), xycoords=leg, xytext=(8, -6),
+                    textcoords="offset points", fontsize=8.5, color=MUTED, va="top", annotation_clip=False)
     return leg
 
 
@@ -338,6 +339,31 @@ def plot_you_are_here(meals_out: float, breakfasts_skipped: float, weekends_away
     gap = "tied with" if rec.gap == 0 else f"\\${rec.gap:,.2f}/yr cheaper than"
     fig.suptitle(f"{label}: cheapest is {rec.label} (\\${rec.annual_cost:,.2f}/yr), {gap} {rec.runner_up_label}",
                  color=INK, fontsize=11, x=0.02, ha="left")
-    _legend(ax, plans, {c.plan for row in cells for c in row}, loc="upper left", bbox_to_anchor=(1.03, 1),
-            note_xy=(1.04, 1.0))
+    _legend(ax, plans, {c.plan for row in cells for c in row}, loc="upper left", bbox_to_anchor=(1.03, 1))
+    return fig
+
+
+def plot_meals_out_comparison(prices: Prices, weekends_away: int = 2, group: str = "undergrad_offcampus",
+                              example: Tuple[float, float] = (4, 3), **kw):
+    """Two maps side by side at one weekends-away level: meals out spread vs taken from dinners first."""
+    import matplotlib.pyplot as plt
+
+    plans = GROUPS[group]
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.4), facecolor=SURFACE, layout="constrained")
+    shown = set()
+    dot = (example[0] + 0.5, example[1] + 0.5)
+    for ax, how, title in [(axes[0], "spread", "Meals out spread over lunch, brunch & dinner (main map)"),
+                           (axes[1], "dinners_first", "Meals out taken from dinners first")]:
+        cells = grid(weekends_away, prices, group, meals_out_from=how, **kw)
+        shown |= {c.plan for row in cells for c in row}
+        _draw_panel(ax, cells, plans, title, avoid=(dot, (dot[0], dot[1] + 1)))
+        rec = recommend(example[0], example[1], weekends_away, prices, group, meals_out_from=how, **kw)
+        ax.plot(*dot, "o", markersize=11, color=INK, markeredgecolor=SURFACE, markeredgewidth=2.5, zorder=5)
+        ax.annotate(f"Example student: {SHORT_LABELS[rec.plan]}", dot, xytext=(0, 12), textcoords="offset points",
+                    ha="center", fontsize=8.5, color=INK, bbox=dict(boxstyle="round,pad=0.25", fc=SURFACE, ec="none"))
+        ax.set_xlabel(X_LABEL, color=MUTED, fontsize=9)
+    axes[0].set_ylabel(Y_LABEL, color=MUTED, fontsize=9)
+    _legend(axes[1], plans, shown, loc="upper left", bbox_to_anchor=(1.03, 1))
+    fig.suptitle(f"Which meals you eat elsewhere changes the answer ({GROUP_TITLES[group].lower()}, "
+                 f"{_plural(weekends_away, 'weekend')} away per term)", color=INK, fontsize=12, x=0.01, ha="left")
     return fig
