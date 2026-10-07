@@ -24,7 +24,7 @@ Pages to fetch:
 - https://www.dining.harvard.edu/undergraduate-dining/faqs
 - https://www.dining.harvard.edu/graduate-professional-dining/meal-plans
 
-**Undergraduate resident plan (2026–27):** mandatory unlimited swipes at 13 dining halls for all undergrads living on campus. Includes $65 BoardPlus per semester (expires end of year). Annual board fee: a third-party site reports ~$8,268 for 2026; CONFIRM from Harvard College's official cost-of-attendance page before using.
+**Undergraduate resident plan (2026–27):** mandatory unlimited swipes at 13 dining halls for all undergrads living on campus. Includes $65 BoardPlus per semester (expires end of year). Annual board fee: **$8,942 for 2026–27** (confirmed from Harvard College's official cost of attendance, listed as "Food": https://college.harvard.edu/financial-aid/how-aid-works). The ~$8,268 figure reported elsewhere is the 2024–25 value.
 
 **Non-resident undergrad plans (FY26–27, per term):**
 - 5 meals/week: $1,538
@@ -38,7 +38,7 @@ Pages to fetch:
 **Grad student GradPlus plan:** Regular $100/month, Deluxe $150/month, declining balance, 10% discount on purchases at HUDS cafes, unused balance forfeited at end of academic year. Some GSAS residents also have a required Commons at Lehman Hall plan (~$3,190/yr, lunch and dinner weekdays).
 
 **Off-campus alternatives (to collect in a later step):**
-- Restaurant prices near Harvard Square / Central Square: Google Places price levels and, where possible, menu prices for typical student meals. Tag by meal type.
+- Restaurant prices near Harvard Square / Central Square: a hand-collected sample of ~30 menus, with prices for typical student meals. Tag by meal type. (No Google Places API.)
 - Grocery/cooking cost per meal: BLS or USDA food cost data for the Boston metro, plus a small basket priced at local stores (Star Market, Trader Joe's, Market Basket) if feasible.
 - Meal delivery markup (optional).
 
@@ -46,7 +46,7 @@ Pages to fetch:
 
 ## Method
 
-1. **Data collection:** agent fetches and parses the HUDS pages, records values with source URLs and fetch dates in a `data/` folder. Gathers Cambridge restaurant and grocery prices.
+1. **Data collection:** agent fetches and parses the HUDS pages and the official board fee, records values with source URLs and fetch dates in a `data/` folder. Step 1 covers only these; Cambridge restaurant and grocery prices are gathered in a separate later step.
 2. **Deterministic model:** cost per meal eaten for each plan as a function of meals eaten per week by meal type, weeks on campus, and forfeiture rules. Pure, unit-tested functions.
 3. **Monte Carlo simulation:** simulate thousands of students with varied habits — breakfast skipping rate, weekend-away frequency, eat-out frequency, cooking share, term length. Compute total food cost per term under each plan vs. the no-plan alternative.
 4. **Break-even analysis:** for each plan, the utilization at which it beats (a) guest rates, (b) eating out at typical Cambridge prices, (c) cooking. Sensitivity analysis on the key assumptions.
@@ -63,7 +63,7 @@ Pages to fetch:
 
 ## Tech
 
-Python 3.11+. pandas, numpy, matplotlib (or plotly), pytest. Optional: requests + BeautifulSoup for fetching HUDS pages. Keep it simple; no web app.
+Python 3.9+. pandas, numpy, matplotlib (or plotly), pytest. Optional: requests + BeautifulSoup for fetching HUDS pages. Keep it simple; no web app.
 
 ## Decisions already made
 
@@ -71,9 +71,11 @@ Python 3.11+. pandas, numpy, matplotlib (or plotly), pytest. Optional: requests 
 - Off-campus comparison uses real Cambridge price data, not national averages alone.
 - Everything must be reproducible; document every assumption in `report.md`.
 - The earlier restaurant-recommender app and student-discount tracker are dropped. Do not build them.
+- Step 1 (data collection) = HUDS pages + official board fee only. Off-campus prices are a separate later step.
+- Restaurant prices come from a hand-collected sample of ~30 menus, not the Google Places API.
+- Resident board fee for 2026–27 is $8,942 (official; see Data section).
+- dining.harvard.edu blocks scripted requests (HTTP 403). HUDS pages are saved from a browser into `data/raw/manual/` and parsed by `scripts/fetch_prices.py`, which verifies each page's canonical URL.
 
 ## Open questions for the user
 
-- Confirm the official resident board fee for 2026–27.
 - Can the user export their own swipe history?
-- Does the user want restaurant price data via Google Places API (needs a key) or a hand-collected sample of ~30 menus?
