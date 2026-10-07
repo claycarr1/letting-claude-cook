@@ -1,0 +1,37 @@
+{
+  "runs": 2000,
+  "seed": 2026,
+  "squares": 1320,
+  "seconds": 30.7,
+  "mean_stability": 0.8647397727272743,
+  "squares_95_or_more": 806,
+  "squares_80_to_95": 153,
+  "squares_under_80": 361,
+  "squares_under_60": 221,
+  "nr10": {
+    "runs": 2000,
+    "runs_where_nr10_wins_somewhere": 0,
+    "share_of_runs": 0.0,
+    "share_of_all_squares": 0.0,
+    "max_squares_in_one_run": 0
+  },
+  "agreement_by_assumption": {
+    "first week swipes": {
+      "full": 0.8721354166666699,
+      "partial": 0.8569804085941369
+    },
+    "meals out taken from": {
+      "dinners_first": 0.8076535508637229,
+      "spread": 0.9268314670715535
+    },
+    "breakfast price": {
+      "annenberg_quincy": 0.8597682454314145,
+      "houses": 0.8702126305067488
+    },
+    "total weeks per year": {
+      "29.0-30.0": 0.8476667939903244,
+      "30.0-31.0": 0.8732800982800988,
+      "31.0-32.0": 0.8614716000585574
+    }
+  }
+}

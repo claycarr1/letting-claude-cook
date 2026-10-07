@@ -157,29 +157,53 @@ def cost_resident_unlimited(pattern: WeeklyPattern, weeks: float, prices: Prices
     return _result("resident unlimited", pattern.total * weeks, charge, 0.0, charge - credit, credits=credit)
 
 
+def _swipe_week(counts: Dict[str, float], swipes: float, meal_prices: Dict[str, float]):
+    """One week on a swipe plan: (cash paid for meals beyond the swipes, swipes left unused).
+
+    Swipes go to the most expensive meals first; whatever is left over is paid in cash.
+    """
+    swipes_left = swipes
+    overflow = 0.0
+    for meal in sorted(MEAL_TYPES, key=lambda m: meal_prices[m], reverse=True):
+        covered = min(counts[meal], swipes_left)
+        swipes_left -= covered
+        overflow += (counts[meal] - covered) * meal_prices[meal]
+    return overflow, swipes_left
+
+
 def cost_non_resident(pattern: WeeklyPattern, weeks: float, prices: Prices, meals_per_week: int,
-                      breakfast_venue: str = "houses") -> TermCost:
-    """Non-resident N-meals/week plan with weekly forfeiture and guest-rate overflow."""
+                      breakfast_venue: str = "houses", first_week_fraction: float = 0.0,
+                      full_first_week_swipes: bool = False) -> TermCost:
+    """Non-resident N-meals/week plan with weekly forfeiture and guest-rate overflow.
+
+    weeks may include a short first week (first_week_fraction of a week, e.g. 4/7 for a term
+    starting on a Wednesday). By default it gets the same fraction of the weekly swipes, which
+    is the same as treating all weeks alike. With full_first_week_swipes=True it gets the
+    whole weekly allowance instead, with only that fraction of the week's meals to spend it on.
+    """
     _check_weeks(weeks)
     if meals_per_week not in prices.non_resident_per_term:
         raise ValueError(f"no non-resident plan with {meals_per_week} meals/week")
+    if not 0 <= first_week_fraction < 1 or first_week_fraction > weeks:
+        raise ValueError(f"first_week_fraction must be in [0, 1) and within the term, got {first_week_fraction}")
     meal_prices = prices.meal_prices(breakfast_venue)
 
-    # Spend swipes on the most expensive meals first; whatever is left over is paid in cash.
-    swipes_left = meals_per_week
-    overflow_per_week = 0.0
-    for meal in sorted(MEAL_TYPES, key=lambda m: meal_prices[m], reverse=True):
-        n = getattr(pattern, meal)
-        covered = min(n, swipes_left)
-        swipes_left -= covered
-        overflow_per_week += (n - covered) * meal_prices[meal]
+    overflow_per_week, left_per_week = _swipe_week(pattern.counts(), meals_per_week, meal_prices)
+    if full_first_week_swipes and first_week_fraction:
+        short_counts = {m: n * first_week_fraction for m, n in pattern.counts().items()}
+        short_overflow, short_left = _swipe_week(short_counts, meals_per_week, meal_prices)
+        full_weeks = weeks - first_week_fraction
+        extra = overflow_per_week * full_weeks + short_overflow
+        unused = left_per_week * full_weeks + short_left
+    else:
+        extra = overflow_per_week * weeks
+        unused = left_per_week * weeks
 
     charge = prices.non_resident_per_term[meals_per_week]
-    extra = overflow_per_week * weeks
     return _result(f"non-resident {meals_per_week}/week", pattern.total * weeks, charge, extra, charge + extra,
-                   unused=swipes_left * weeks,
-                   details={"swipes_used_per_week": meals_per_week - swipes_left,
-                            "swipes_forfeited_per_week": swipes_left})
+                   unused=unused,
+                   details={"swipes_used_per_week": meals_per_week - left_per_week,
+                            "swipes_forfeited_per_week": left_per_week})
 
 
 def cost_gradplus(pattern: WeeklyPattern, weeks: float, prices: Prices, tier: str, term: str,
@@ -304,3 +328,22 @@ def load_term_weeks(csv_path: Path = DEFAULT_CSV, year: str = "2026-27") -> Dict
         weeks[term] = ((last - first).days + 1) / 7
     weeks["spring"] -= SPRING_BREAK_WEEKS
     return weeks
+
+
+@lru_cache(maxsize=None)
+def load_first_week_fractions(csv_path: Path = DEFAULT_CSV, year: str = "2026-27") -> Dict[str, float]:
+    """Length of each term's short first week, as a fraction of a week.
+
+    Swipes reset after Saturday dinner, so the first week runs from the first day of term to
+    the first Saturday. Fall 2026 starts on a Wednesday (4/7), spring 2027 on a Monday (6/7).
+    """
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        rows = {r["item"]: r["value"] for r in csv.DictReader(f)}
+    fy = "FY" + year[2:4] + "-" + year[-2:]
+    y0, y1 = 2000 + int(year[2:4]), 2000 + int(year[-2:])
+    fractions = {}
+    for term, y in {"fall": y0, "spring": y1}.items():
+        first, _ = _parse_term(rows[f"Non-resident plans {fy}: {term} term dates"], y, y)
+        days_to_saturday = (5 - first.weekday()) % 7 + 1  # weekday(): Monday=0 ... Saturday=5
+        fractions[term] = (days_to_saturday % 7) / 7  # a term starting on a Sunday has no short week
+    return fractions

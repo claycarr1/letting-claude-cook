@@ -11,7 +11,9 @@ Writes:
   figures/you_are_here.png               the --you-are-here habits on their map (default: the
                                          example student, 4 meals out, 3 breakfasts skipped,
                                          2 weekends away)
-  figures/on_campus_cost_per_meal.png/.csv  the mandatory unlimited plan's cost per meal eaten
+  figures/on_campus_cost_per_meal.png/.csv  the mandatory unlimited plan's cost per meal eaten, with
+                                         the range across the Monte Carlo draws shaded
+The Monte Carlo stability map is made by scripts/run_monte_carlo.py (it takes a few minutes).
 """
 
 import argparse
@@ -36,6 +38,7 @@ from decision_map import (  # noqa: E402
     recommend,
 )
 from model import load_prices  # noqa: E402
+from monte_carlo import draw_assumptions  # noqa: E402
 from on_campus import FULL_WEEK, plot_on_campus, resident_cost_per_meal  # noqa: E402
 
 OUT = ROOT / "figures"
@@ -80,7 +83,7 @@ def main():
     fig.savefig(OUT / "you_are_here.png", dpi=150, facecolor=fig.get_facecolor())
     print("wrote figures/you_are_here.png")
 
-    fig = plot_on_campus(prices)
+    fig = plot_on_campus(prices, band_draws=draw_assumptions())
     fig.savefig(OUT / "on_campus_cost_per_meal.png", dpi=150, facecolor=fig.get_facecolor())
     with (OUT / "on_campus_cost_per_meal.csv").open("w", newline="") as f:
         w = csv.writer(f)

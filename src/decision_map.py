@@ -12,9 +12,10 @@ habits), so GradPlus's fall-to-spring rollover and year-end forfeiture are count
 
 Assumptions (each needs to go in report.md):
 * Start from a full HUDS week: 7 breakfasts, 5 lunches (Mon-Fri), 2 brunches (Sat-Sun),
-  7 dinners. Skipped breakfasts come off breakfast. Meals out come off the 14
+  7 dinners. Skipped breakfasts come off breakfast. By default meals out come off the 14
   non-breakfast meals in proportion (5 lunch : 2 brunch : 7 dinner), so 14 meals out
-  means no lunch, brunch or dinner at HUDS.
+  means no lunch, brunch or dinner at HUDS. meals_out_from="dinners_first" instead takes
+  them off dinners until none are left, then off lunches and brunches in proportion.
 * A weekend away removes that week's Saturday and Sunday meals: both brunches and 2/7 of
   the week's breakfasts and dinners (skips and meals out are spread evenly over the week).
   Weeks with and without a weekend away are costed separately, so weekly swipe
@@ -23,7 +24,9 @@ Assumptions (each needs to go in report.md):
   is cheapest and aren't priced here.
 * Term lengths come from the CSV term dates (model.load_term_weeks): fall 15.57 weeks,
   spring 14.86 (one spring-break week removed). Same habits in both terms. A short first
-  week counts as a fraction of a week, with that fraction of the weekly meals and swipes.
+  week counts as a fraction of a week, with that fraction of the weekly meals and, by
+  default, of the weekly swipes (full_first_week_swipes=True gives it a full allowance).
+* Breakfast is priced at the House guest rate unless breakfast_venue="annenberg_quincy".
 """
 
 from dataclasses import dataclass
@@ -37,6 +40,7 @@ from model import (
     cost_no_plan,
     cost_non_resident,
     cost_resident_unlimited,
+    load_first_week_fractions,
     load_term_weeks,
 )
 
@@ -85,14 +89,26 @@ def _check_range(name: str, value: float, bounds: Tuple[int, int]):
         raise ValueError(f"{name}={value} is outside {lo}..{hi}")
 
 
-def habits_to_patterns(meals_out: float, breakfasts_skipped: float) -> Tuple[WeeklyPattern, WeeklyPattern]:
+MEALS_OUT_FROM = ("spread", "dinners_first")
+
+
+def habits_to_patterns(meals_out: float, breakfasts_skipped: float,
+                       meals_out_from: str = "spread") -> Tuple[WeeklyPattern, WeeklyPattern]:
     """Return (normal week, week with a weekend away) as HUDS meals eaten."""
     _check_range("meals_out", meals_out, MEALS_OUT_RANGE)
     _check_range("breakfasts_skipped", breakfasts_skipped, BREAKFASTS_SKIPPED_RANGE)
-    keep = 1 - meals_out / 14
+    if meals_out_from == "spread":
+        keep = 1 - meals_out / 14
+        lunch, brunch, dinner = 5 * keep, 2 * keep, 7 * keep
+    elif meals_out_from == "dinners_first":
+        dinner = 7 - min(meals_out, 7)
+        keep = 1 - max(meals_out - 7, 0) / 7  # share of lunches and brunches still eaten at HUDS
+        lunch, brunch = 5 * keep, 2 * keep
+    else:
+        raise ValueError(f"meals_out_from must be one of {MEALS_OUT_FROM}")
     breakfast = 7 - breakfasts_skipped
-    normal = WeeklyPattern(breakfast=breakfast, lunch=5 * keep, brunch=2 * keep, dinner=7 * keep)
-    away = WeeklyPattern(breakfast=breakfast * 5 / 7, lunch=5 * keep, brunch=0, dinner=7 * keep * 5 / 7)
+    normal = WeeklyPattern(breakfast=breakfast, lunch=lunch, brunch=brunch, dinner=dinner)
+    away = WeeklyPattern(breakfast=breakfast * 5 / 7, lunch=lunch, brunch=0, dinner=dinner * 5 / 7)
     return normal, away
 
 
@@ -105,29 +121,37 @@ def _average(normal: WeeklyPattern, away: WeeklyPattern, weeks: float, weeks_awa
 
 def annual_costs(meals_out: float, breakfasts_skipped: float, weekends_away: float, prices: Prices,
                  plans: Optional[List[str]] = None, term_weeks: Optional[Dict[str, float]] = None,
-                 cafe_meal_price: Optional[float] = None) -> Dict[str, float]:
+                 cafe_meal_price: Optional[float] = None, meals_out_from: str = "spread",
+                 breakfast_venue: str = "houses", full_first_week_swipes: bool = False) -> Dict[str, float]:
     """Cost per academic year (USD) of each plan for these habits.
 
     term_weeks gives the weeks of dining in each term, e.g. {"fall": 15.57, "spring": 14.86};
     by default it comes from the term dates in data/huds_prices.csv (model.load_term_weeks).
+    The short first week of each term (model.load_first_week_fractions) is a home week.
     """
     _check_range("weekends_away", weekends_away, WEEKENDS_AWAY_RANGE)
     term_weeks = term_weeks or load_term_weeks()
     if any(weekends_away >= w for w in term_weeks.values()):
         raise ValueError("need at least one week on campus per term")
     plans = plans or GROUPS["all"]
-    normal, away = habits_to_patterns(meals_out, breakfasts_skipped)
+    normal, away = habits_to_patterns(meals_out, breakfasts_skipped, meals_out_from)
+    first_week = load_first_week_fractions()
 
     def year(cost_fn) -> float:
         # Per term, the plan charge is counted once and the cash for meals outside the plan in
         # each kind of week is added up. Valid for every plan whose balance resets weekly or never.
+        # cost_fn(pattern, weeks, first_week_fraction) -- only swipe plans use the last argument.
         total = 0.0
-        for weeks in term_weeks.values():
-            r = cost_fn(normal, weeks - weekends_away)
+        for term, weeks in term_weeks.items():
+            r = cost_fn(normal, weeks - weekends_away, first_week[term])
             total += r.plan_charge - r.credits + r.extra_cash
             if weekends_away:
-                total += cost_fn(away, weekends_away).extra_cash
+                total += cost_fn(away, weekends_away, 0.0).extra_cash
         return total
+
+    def non_resident(n):
+        return lambda p, w, f: cost_non_resident(p, w, prices, n, breakfast_venue, first_week_fraction=f,
+                                                 full_first_week_swipes=full_first_week_swipes)
 
     def gradplus_year(tier: str) -> float:
         # GradPlus spends one balance over the whole term, so the averaged pattern is exact.
@@ -139,12 +163,12 @@ def annual_costs(meals_out: float, breakfasts_skipped: float, weekends_away: flo
         return fall.total_cost + spring.total_cost
 
     calc = {
-        "resident": lambda: year(lambda p, w: cost_resident_unlimited(p, w, prices)),
-        "nr5": lambda: year(lambda p, w: cost_non_resident(p, w, prices, 5)),
-        "nr10": lambda: year(lambda p, w: cost_non_resident(p, w, prices, 10)),
-        "nr21": lambda: year(lambda p, w: cost_non_resident(p, w, prices, 21)),
-        "cash_guest": lambda: year(lambda p, w: cost_no_plan(p, w, prices)),
-        "cash_cafe": lambda: year(lambda p, w: cost_cash_at_cafe(p, w, cafe_meal_price)),
+        "resident": lambda: year(lambda p, w, f: cost_resident_unlimited(p, w, prices)),
+        "nr5": lambda: year(non_resident(5)),
+        "nr10": lambda: year(non_resident(10)),
+        "nr21": lambda: year(non_resident(21)),
+        "cash_guest": lambda: year(lambda p, w, f: cost_no_plan(p, w, prices, breakfast_venue)),
+        "cash_cafe": lambda: year(lambda p, w, f: cost_cash_at_cafe(p, w, cafe_meal_price)),
         "gp_regular": lambda: gradplus_year("regular"),
         "gp_deluxe": lambda: gradplus_year("deluxe"),
     }

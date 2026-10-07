@@ -41,7 +41,21 @@ def break_even_meals_per_week(guest_price: float, prices: Prices, term_weeks: Op
     return cost / (guest_price * sum(term_weeks.values()))
 
 
-def plot_on_campus(prices: Prices, term_weeks: Optional[Dict[str, float]] = None):
+def band(prices: Prices, draws, xs, low: float = 0.05, high: float = 0.95):
+    """Cost per meal at each x across Monte Carlo draws (weeks per term, BoardPlus spent or not):
+    the `low` and `high` quantiles, as two lists."""
+    curves = [[resident_cost_per_meal(x, prices, term_weeks=d.term_weeks(), count_boardplus=d.boardplus_spent)
+               for x in xs] for d in draws]
+    lo, hi = [], []
+    for i in range(len(xs)):
+        col = sorted(c[i] for c in curves)
+        lo.append(col[int(low * (len(col) - 1))])
+        hi.append(col[int(high * (len(col) - 1))])
+    return lo, hi
+
+
+def plot_on_campus(prices: Prices, term_weeks: Optional[Dict[str, float]] = None, band_draws=None):
+    """band_draws: Monte Carlo draws (monte_carlo.draw_assumptions) for a shaded 5-95% range."""
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
 
@@ -55,6 +69,10 @@ def plot_on_campus(prices: Prices, term_weeks: Optional[Dict[str, float]] = None
 
     fig, ax = plt.subplots(figsize=(10, 6), facecolor=SURFACE, layout="constrained")
     ax.set_facecolor(SURFACE)
+    if band_draws:
+        lo, hi = band(prices, band_draws, xs)
+        ax.fill_between(xs, lo, hi, color=plan_color, alpha=0.15, linewidth=0, zorder=1,
+                        label=f"Range in 90% of {len(band_draws):,} runs (weeks/term 14.5-16, BoardPlus spent or not)")
     for count, style, label in [(True, "-", "Unlimited plan, BoardPlus spent (\\$4,406/term)"),
                                 (False, (0, (4, 3)), "Unlimited plan, BoardPlus unspent (\\$4,471/term)")]:
         ys = [resident_cost_per_meal(x, prices, term_weeks=term_weeks, count_boardplus=count) for x in xs]

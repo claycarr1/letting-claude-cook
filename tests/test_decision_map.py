@@ -96,6 +96,50 @@ def test_unknown_group():
         recommend(0, 0, 0, PRICES, "faculty", term_weeks=TW15)
 
 
+def test_dinners_first_patterns():
+    # 4 meals out, dinners first: 3 dinners left, all 5 lunches and 2 brunches.
+    normal, away = habits_to_patterns(4, 3, "dinners_first")
+    assert (normal.breakfast, normal.lunch, normal.brunch, normal.dinner) == (4, 5, 2, 3)
+    assert away.dinner == pytest.approx(3 * 5 / 7) and away.brunch == 0
+    # 10 meals out: no dinners; the other 3 come off lunches and brunches in proportion (5:2),
+    # leaving 4/7 of each: 5 x 4/7 lunches and 2 x 4/7 brunches.
+    normal, _ = habits_to_patterns(10, 0, "dinners_first")
+    assert normal.dinner == 0
+    assert normal.lunch == pytest.approx(20 / 7) and normal.brunch == pytest.approx(8 / 7)
+
+
+def test_example_student_dinners_first():
+    # Example student (4 meals out, 3 breakfasts skipped, 2 weekends away), real calendar
+    # (fall 15 4/7 weeks, spring 14 6/7), meals out taken from dinners first.
+    # Home week: 4 breakfasts, 5 lunches, 2 brunches, 3 dinners.
+    #   5-meal plan: swipes on 3 dinners + 2 lunches; cash for 3 lunches + 2 brunches + 4 breakfasts
+    #     = 86.50 + 43.36 = 129.86.
+    #   Paying as you go: 43.36 + 86.50 + 34.60 + 64.20 = 228.66.
+    # Away week: 20/7 breakfasts, 5 lunches, 15/7 dinners.
+    #   5-meal plan: swipes on 15/7 dinners + 20/7 lunches; cash for 15/7 lunches + 20/7 breakfasts
+    #     = 37.0714 + 30.9714 = 68.0429.
+    #   Paying as you go: 30.9714 + 86.50 + 45.8571 = 163.3286.
+    # Home weeks: fall 13 4/7, spring 12 6/7 (26 3/7 in total); 2 away weeks per term (4 in total).
+    #   5-meal plan: 2 x 1538 + 129.86 x 185/7 + 68.0429 x 4 = 3076 + 3431.98 + 272.17 = 6780.16
+    #   Paying as you go: 228.66 x 185/7 + 163.3286 x 4 = 6043.16 + 653.31 = 6696.47
+    c = annual_costs(4, 3, 2, PRICES, ["nr5", "cash_guest"], meals_out_from="dinners_first")
+    assert c["nr5"] == pytest.approx(6780.16, abs=0.05)
+    assert c["cash_guest"] == pytest.approx(6696.47, abs=0.05)
+    # With meals out spread, the 5-meal plan costs the same but paying as you go costs more
+    # (5 dinners instead of 3 each home week), so the 5-meal plan wins instead.
+    spread = annual_costs(4, 3, 2, PRICES, ["nr5", "cash_guest"])
+    assert spread["nr5"] == pytest.approx(c["nr5"], abs=0.05)
+    assert spread["cash_guest"] > spread["nr5"]
+
+
+def test_annenberg_breakfast_raises_cash_cost():
+    # 0 meals out, 0 skipped, no weekends away: 7 breakfasts/week x (12.90 - 10.84) = 14.42 more
+    # per week when paying as you go, x 213/7 weeks = 438.78 more per year.
+    houses = annual_costs(0, 0, 0, PRICES, ["cash_guest"])["cash_guest"]
+    annenberg = annual_costs(0, 0, 0, PRICES, ["cash_guest"], breakfast_venue="annenberg_quincy")["cash_guest"]
+    assert annenberg - houses == pytest.approx(14.42 * 213 / 7, abs=0.02)
+
+
 # ---------------------------------------------------------------- real calendar (2026-27)
 
 def test_term_weeks_from_csv():

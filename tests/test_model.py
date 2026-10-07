@@ -110,6 +110,22 @@ def test_non_resident_5_overflow_paid_at_guest_rates():
     assert r.cost_per_meal == pytest.approx(19.7233, abs=1e-4)
 
 
+def test_non_resident_full_first_week_swipes():
+    # 5-meal plan, 7 dinners/week, a term of 15 full weeks plus a 4-day first week (4/7).
+    # Partial first-week swipes (default): 2 dinners/week paid in cash all term:
+    #   2 x 21.40 x (15 + 4/7) = 42.80 x 15.5714 = 666.46; total 2204.46.
+    # Full first-week swipes: 15 full weeks x 42.80 = 642.00; in the short week 4 dinners are
+    #   eaten and all 5 swipes are available, so nothing is paid in cash and 1 swipe is forfeited.
+    #   Total 1538 + 642 = 2180.00.
+    weeks = 15 + 4 / 7
+    partial = cost_non_resident(WeeklyPattern(dinner=7), weeks, PRICES, 5, first_week_fraction=4 / 7)
+    full = cost_non_resident(WeeklyPattern(dinner=7), weeks, PRICES, 5, first_week_fraction=4 / 7,
+                             full_first_week_swipes=True)
+    assert partial.total_cost == pytest.approx(2204.46, abs=0.01)
+    assert full.total_cost == pytest.approx(2180.00)
+    assert full.unused == pytest.approx(1)
+
+
 def test_non_resident_swipes_go_to_dearest_meals_first():
     # 5 lunches (17.30) + 7 breakfasts (10.84) on the 5-meal plan: swipes cover the lunches,
     # breakfasts are paid in cash: 7 x 10.84 = 75.88 per week.
