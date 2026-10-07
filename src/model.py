@@ -2,7 +2,10 @@
 
 Every function here is pure: it takes a Prices object, a weekly eating pattern and a
 term length, and returns a TermCost. Prices are read from data/huds_prices.csv by
-load_prices(); nothing in this module hardcodes a dollar amount.
+load_prices(). The only hardcoded dollar amount is CAFE_MEAL_PRICE_ESTIMATE, a marked
+placeholder for GradPlus cafe meals until real cafe prices are collected.
+For every plan, total_cost = plan_charge + extra_cash - credits (GradPlus also adjusts
+for carry_in/carry_out; see below).
 
 Modelling assumptions (each needs to go in report.md):
 
@@ -12,8 +15,8 @@ Modelling assumptions (each needs to go in report.md):
   fractional averages.
 * The "price" of a meal is its HUDS guest rate including the 7% meals tax. Breakfast
   defaults to the House rate; pass breakfast_venue="annenberg_quincy" for the higher one.
-* Resident unlimited: the annual board fee is split evenly across two terms. The $65
-  BoardPlus that comes with it is not credited (treated as having no value).
+* Resident unlimited: the annual board fee is split evenly across two terms, minus the
+  BoardPlus dollars loaded each semester (treated as fully spent, i.e. worth face value).
 * Non-resident 5/10/21: the plan price is paid per term. Each week the student uses up
   to N swipes, on their most expensive meals first; unused swipes are forfeited that
   week. Meals beyond N in a week are paid at guest rates.
@@ -21,8 +24,9 @@ Modelling assumptions (each needs to go in report.md):
   plan discount; once the balance runs out, the rest is paid at full price. Unspent fall
   balance rolls over to spring (carry_out); unspent spring balance is forfeited. A
   term's cost is plan charge + carry_in - carry_out + extra cash, so fall + spring sums
-  to the cash actually paid over the year. GradPlus is used at HUDS cafes, but until we
-  have cafe prices, meals are priced at guest rates (override with meal_prices=).
+  to the cash actually paid over the year. GradPlus is spent at HUDS cafes, so every
+  meal is priced at cafe_meal_price. Its default, CAFE_MEAL_PRICE_ESTIMATE, is a
+  placeholder ESTIMATE, not a collected price; results using it say so in TermCost.notes.
 * No plan: every meal is paid at guest rates.
 """
 
@@ -38,6 +42,12 @@ MAX_PER_WEEK = {"breakfast": 7, "lunch": 5, "brunch": 2, "dinner": 7}
 NON_RESIDENT_TIERS = (5, 10, 21)
 TERMS = ("fall", "spring")
 GRADPLUS_TIERS = ("regular", "deluxe")
+
+# ESTIMATE -- the one price in this module not read from data/huds_prices.csv.
+# Placeholder until real HUDS cafe prices are collected (HUDS describes GradPlus meals as
+# "$10-15"). Replace with collected data, then drop the estimate note in cost_gradplus.
+CAFE_MEAL_PRICE_ESTIMATE = 12.50
+CAFE_ESTIMATE_NOTE = f"cafe_meal_price ${CAFE_MEAL_PRICE_ESTIMATE:.2f} is a placeholder ESTIMATE, not a collected price"
 
 
 @dataclass(frozen=True)
@@ -68,6 +78,7 @@ class Prices:
     """All prices the model needs, as read from data/huds_prices.csv."""
 
     resident_board_fee_per_year: float
+    boardplus_per_semester: float
     guest_rates: Dict[str, float]  # incl. tax; keys: breakfast_houses, breakfast_annenberg_quincy, lunch, brunch, dinner
     non_resident_per_term: Dict[int, float]  # meals/week tier -> USD per term
     gradplus_per_term: Dict[str, Dict[str, float]]  # tier -> term -> USD balance
@@ -90,8 +101,10 @@ class TermCost:
     extra_cash: float  # meals paid for outside the plan
     total_cost: float
     cost_per_meal: Optional[float]  # None when no meals are eaten
+    credits: float = 0  # value returned with the plan (resident BoardPlus)
     unused: float = 0  # forfeited swipes (non-resident) or forfeited dollars (GradPlus)
     carry_out: float = 0  # GradPlus fall balance rolling into spring
+    notes: str = ""  # caveats, e.g. estimated prices
     details: Dict[str, float] = field(default_factory=dict)
 
 
@@ -121,10 +134,11 @@ def cost_no_plan(pattern: WeeklyPattern, weeks: float, prices: Prices,
 
 
 def cost_resident_unlimited(pattern: WeeklyPattern, weeks: float, prices: Prices) -> TermCost:
-    """Mandatory unlimited plan: half the annual board fee per term, every meal covered."""
+    """Mandatory unlimited plan: half the annual board fee per term, less that term's BoardPlus."""
     _check_weeks(weeks)
     charge = prices.resident_board_fee_per_year / 2
-    return _result("resident unlimited", pattern.total * weeks, charge, 0.0, charge)
+    credit = prices.boardplus_per_semester
+    return _result("resident unlimited", pattern.total * weeks, charge, 0.0, charge - credit, credits=credit)
 
 
 def cost_non_resident(pattern: WeeklyPattern, weeks: float, prices: Prices, meals_per_week: int,
@@ -153,22 +167,27 @@ def cost_non_resident(pattern: WeeklyPattern, weeks: float, prices: Prices, meal
 
 
 def cost_gradplus(pattern: WeeklyPattern, weeks: float, prices: Prices, tier: str, term: str,
-                  carry_in: float = 0.0, meal_prices: Optional[Dict[str, float]] = None) -> TermCost:
+                  carry_in: float = 0.0, cafe_meal_price: Optional[float] = None) -> TermCost:
     """GradPlus declining balance with discount, fall-to-spring rollover and year-end forfeiture.
 
     carry_in is the unspent fall balance (pass the fall result's carry_out into spring).
+    cafe_meal_price is the list price of one cafe meal, applied to every meal type. If
+    omitted, CAFE_MEAL_PRICE_ESTIMATE is used and the result's notes flag it as an estimate.
     """
     _check_weeks(weeks)
     if tier not in GRADPLUS_TIERS or term not in TERMS:
         raise ValueError(f"tier must be one of {GRADPLUS_TIERS} and term one of {TERMS}")
     if term == "fall" and carry_in:
         raise ValueError("carry_in only applies to spring")
-    if meal_prices is None:
-        meal_prices = prices.meal_prices()
+    notes = ""
+    if cafe_meal_price is None:
+        cafe_meal_price, notes = CAFE_MEAL_PRICE_ESTIMATE, CAFE_ESTIMATE_NOTE
+    if cafe_meal_price < 0:
+        raise ValueError(f"cafe_meal_price must be non-negative, got {cafe_meal_price}")
 
     charge = prices.gradplus_per_term[tier][term]
     balance = charge + carry_in
-    list_total = _list_price_per_week(pattern, meal_prices) * weeks
+    list_total = pattern.total * cafe_meal_price * weeks
     discounted_total = list_total * (1 - prices.gradplus_discount)
 
     if discounted_total <= balance:
@@ -183,8 +202,9 @@ def cost_gradplus(pattern: WeeklyPattern, weeks: float, prices: Prices, tier: st
 
     total = charge + carry_in - carry_out + extra
     return _result(f"GradPlus {tier} ({term})", pattern.total * weeks, charge, extra, total,
-                   unused=forfeited, carry_out=carry_out,
-                   details={"balance_available": balance, "balance_spent": spent, "list_price_of_meals": list_total})
+                   unused=forfeited, carry_out=carry_out, notes=notes,
+                   details={"balance_available": balance, "balance_spent": spent, "list_price_of_meals": list_total,
+                            "cafe_meal_price": cafe_meal_price})
 
 
 # ---------------------------------------------------------------------------- price loading
@@ -217,6 +237,7 @@ def load_prices(csv_path: Path = DEFAULT_CSV, year: str = "2026-27") -> Prices:
 
     return Prices(
         resident_board_fee_per_year=get(f"Harvard College {year} cost of attendance: Board fee (listed as 'Food')"),
+        boardplus_per_semester=get("Resident plan: BoardPlus per semester"),
         guest_rates=guest,
         non_resident_per_term={n: get(f"Non-resident {n} meals/week plan {fy}") for n in NON_RESIDENT_TIERS},
         gradplus_per_term={
