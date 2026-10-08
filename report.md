@@ -66,3 +66,12 @@ For off-campus undergraduates choosing between the 5-meal plan and paying as you
 For the example student, the 5-meal plan's yearly cost changes only a little ($6,780 spread or dinners first, $6,918 lunches first). The bigger swing is in paying as you go, which depends on what they still eat at HUDS: $6,937 spread out, $6,696 dinners first (they eat cheaper lunches and brunches at HUDS), and $7,098 lunches first (they eat their dinners at HUDS).
 
 **The Monte Carlo check only compared spread-out vs dinners-first** (50/50). Lunches first is not part of it, so the stability percentages above say nothing about it; it is shown here as a separate, deterministic comparison.
+
+## Supporting figures
+
+All made by `scripts/make_figures.py` (the last one reads the Monte Carlo summary written by `scripts/run_monte_carlo.py`).
+
+- **`figures/yearly_cost_curves.png`** — Yearly cost of each off-campus option against meals eaten at HUDS per week (every meal type cut evenly, 2 weekends away per term): paying as you go is cheapest below 11.1 meals a week, the 5-meal plan from 11.1 to 18.6, the 21-meal plan above 18.6, and the 10-meal plan is never the lowest line.
+- **`figures/swipe_cost.png`** — What one swipe costs on each off-campus plan if every swipe is used ($20.22 on the 5-meal plan, $20.11 on the 10-meal, $13.79 on the 21-meal) next to the guest prices: 5- and 10-meal swipes only beat paying at the door on a dinner ($21.40), while a 21-meal swipe beats it on lunch, brunch and dinner but not breakfast.
+- **`figures/gap_map_undergrad_offcampus.png`** — How many dollars a year the cheapest option saves over the runner-up in each square of the off-campus map, with black lines at the boundaries between plans: the saving is smallest (under $150) next to the boundaries and largest (over $1,200) for students who eat almost everything or almost nothing at HUDS.
+- **`figures/assumption_effects.png`** — From the Monte Carlo runs, how much more of the off-campus map changes its answer under one setting of each assumption than the other: which meals are eaten elsewhere matters most (11.9 percentage points), far more than weeks per term (2.6), first-week swipes (1.5) or breakfast price (1.0).
