@@ -37,6 +37,8 @@ from model import (
     Prices,
     WeeklyPattern,
     cost_cash_at_cafe,
+    cost_outside,
+    flat_prices,
     cost_gradplus,
     cost_no_plan,
     cost_non_resident,
@@ -59,6 +61,7 @@ PLAN_LABELS = {
     "gp_deluxe": "GradPlus Deluxe",
     "cash_guest": "No plan (pay guest rates)",
     "cash_cafe": "No plan (pay cash at cafe)",
+    "no_plan": "No plan (eat out or cook)",
 }
 
 # Which options a student can actually choose between.
@@ -67,6 +70,8 @@ GROUPS = {
     "all": ["resident", "nr5", "nr10", "nr21", "gp_regular", "gp_deluxe", "cash_guest"],
     # Undergrads living off campus: the resident plan isn't available, GradPlus isn't either.
     "undergrad_offcampus": ["nr5", "nr10", "nr21", "cash_guest"],
+    # Off-campus undergrads, current model: no plan means eating out or cooking (needs outside_price).
+    "undergrad_offcampus_outside": ["no_plan", "nr5", "nr10", "nr21"],
     # Grad students: GradPlus at HUDS cafes, or pay cash at the same cafes.
     "grad": ["gp_regular", "gp_deluxe", "cash_cafe"],
 }
@@ -129,12 +134,19 @@ def _average(normal: WeeklyPattern, away: WeeklyPattern, weeks: float, weeks_awa
 def annual_costs(meals_out: float, breakfasts_skipped: float, weekends_away: float, prices: Prices,
                  plans: Optional[List[str]] = None, term_weeks: Optional[Dict[str, float]] = None,
                  cafe_meal_price: Optional[float] = None, meals_out_from: str = "spread",
-                 breakfast_venue: str = "houses", full_first_week_swipes: bool = False) -> Dict[str, float]:
+                 breakfast_venue: str = "houses", full_first_week_swipes: bool = False,
+                 outside_price: Optional[float] = None) -> Dict[str, float]:
     """Cost per academic year (USD) of each plan for these habits.
 
     term_weeks gives the weeks of dining in each term, e.g. {"fall": 15.57, "spring": 14.86};
     by default it comes from the term dates in data/huds_prices.csv (model.load_term_weeks).
     The short first week of each term (model.load_first_week_fractions) is a home week.
+
+    outside_price: cost of a meal eaten out or cooked. When given, meals the swipe plans don't
+    cover are priced at it, and "no_plan" (every HUDS meal eaten out or cooked instead) is
+    available. Costs cover only the meals the student would eat at HUDS; meals they eat
+    elsewhere anyway cost the same under every option (see outside_food.year_food_spending
+    for the full food bill).
     """
     _check_range("weekends_away", weekends_away, WEEKENDS_AWAY_RANGE)
     term_weeks = term_weeks or load_term_weeks()
@@ -156,9 +168,17 @@ def annual_costs(meals_out: float, breakfasts_skipped: float, weekends_away: flo
                 total += cost_fn(away, weekends_away, 0.0).extra_cash
         return total
 
+    outside = flat_prices(outside_price) if outside_price is not None else None
+
     def non_resident(n):
         return lambda p, w, f: cost_non_resident(p, w, prices, n, breakfast_venue, first_week_fraction=f,
-                                                 full_first_week_swipes=full_first_week_swipes)
+                                                 full_first_week_swipes=full_first_week_swipes,
+                                                 outside_prices=outside)
+
+    def no_plan_year() -> float:
+        if outside_price is None:
+            raise ValueError("'no_plan' needs an outside_price")
+        return year(lambda p, w, f: cost_outside(p, w, outside_price))
 
     def gradplus_year(tier: str) -> float:
         # GradPlus spends one balance over the whole term, so the averaged pattern is exact.
@@ -178,6 +198,7 @@ def annual_costs(meals_out: float, breakfasts_skipped: float, weekends_away: flo
         "cash_cafe": lambda: year(lambda p, w, f: cost_cash_at_cafe(p, w, cafe_meal_price)),
         "gp_regular": lambda: gradplus_year("regular"),
         "gp_deluxe": lambda: gradplus_year("deluxe"),
+        "no_plan": no_plan_year,
     }
     return {plan: round(calc[plan](), 2) for plan in plans}
 
@@ -207,14 +228,14 @@ def recommend(meals_out: float, breakfasts_skipped: float, weekends_away: float,
 # Plans that win nowhere under the current prices get fallback colours and are flagged.
 SURFACE, INK, MUTED = "#fcfcfb", "#0b0b0b", "#52514e"
 PLAN_COLORS = {
-    "cash_guest": "#2a78d6", "cash_cafe": "#2a78d6",
+    "cash_guest": "#2a78d6", "cash_cafe": "#2a78d6", "no_plan": "#2a78d6",
     "nr5": "#1baf7a", "gp_regular": "#1baf7a",
     "nr21": "#eb6834", "gp_deluxe": "#eb6834",
     "nr10": "#eda100", "resident": "#4a3aa7",  # fallbacks: neither wins anywhere at 2026-27 prices
 }
 SHORT_LABELS = {
     "resident": "Resident plan", "nr5": "5-meal plan", "nr10": "10-meal plan", "nr21": "21-meal plan",
-    "gp_regular": "GradPlus Regular", "gp_deluxe": "GradPlus Deluxe", "cash_guest": "No plan", "cash_cafe": "No plan",
+    "gp_regular": "GradPlus Regular", "gp_deluxe": "GradPlus Deluxe", "cash_guest": "No plan", "cash_cafe": "No plan", "no_plan": "No plan",
 }
 X_LABEL = "Lunches, brunches & dinners eaten elsewhere per week"  # the meals_out input
 Y_LABEL = "Breakfasts skipped or eaten elsewhere per week"  # the breakfasts_skipped input

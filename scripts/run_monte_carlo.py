@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Monte Carlo sensitivity check of the off-campus undergrad decision map.
+"""LEGACY (guest-rate model): Monte Carlo sensitivity check of the old off-campus decision map.
+
+It still prices uncovered meals at HUDS guest rates, so it writes into the archive folder
+figures/appendix/guest_rate_model/. It will be rebuilt on the current outside-price model.
 
 Usage:
   .venv/bin/python scripts/run_monte_carlo.py            # 2,000 runs, seed 2026, all CPU cores
@@ -35,7 +38,7 @@ from monte_carlo import (  # noqa: E402
     CELLS, GROUP, N_RUNS, SEED, draw_to_dict, factor_effects, nr10_summary, plot_stability, run,
 )
 
-OUT = ROOT / "figures"
+OUT = ROOT / "figures" / "appendix" / "guest_rate_model"
 
 
 def main():
@@ -54,7 +57,7 @@ def main():
     OUT.mkdir(exist_ok=True)
     fig = plot_stability(result, weekends_levels=MAIN_WEEKENDS)
     fig.savefig(OUT / f"stability_map_{GROUP}.png", dpi=150, facecolor=fig.get_facecolor())
-    (OUT / "appendix").mkdir(exist_ok=True)
+    (OUT / "appendix").mkdir(parents=True, exist_ok=True)
     fig = plot_stability(result)
     fig.savefig(OUT / "appendix" / f"stability_map_{GROUP}_all_weekends.png", dpi=150, facecolor=fig.get_facecolor())
 

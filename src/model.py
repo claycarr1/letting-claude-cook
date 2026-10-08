@@ -13,8 +13,12 @@ Modelling assumptions (each needs to go in report.md):
   most 7 breakfasts, 5 lunches (Mon-Fri), 2 brunches (Sat-Sun) and 7 dinners a week
   (21 periods, matching the guest-rate schedule and the 21-meal plan). Counts may be
   fractional averages.
-* The "price" of a meal is its HUDS guest rate including the 7% meals tax. Breakfast
-  defaults to the House rate; pass breakfast_venue="annenberg_quincy" for the higher one.
+* Meals a plan doesn't cover are eaten out or cooked at an "outside price" per meal
+  (outside_prices=, e.g. flat_prices(12.0)); "no plan" is cost_outside(). A student without
+  a plan can't buy HUDS guest meals (see CLAUDE.md), so guest rates are a reference only.
+  For comparison with the archived guest-rate model, the swipe-plan functions still default
+  to guest rates (incl. 7% meals tax; breakfast at the House rate unless
+  breakfast_venue="annenberg_quincy") when no outside price is given.
 * Resident unlimited: the annual board fee is split evenly across two terms, minus the
   BoardPlus dollars loaded each semester (treated as fully spent, i.e. worth face value).
 * Non-resident 5/10/21: the plan price is paid per term. Each week the student uses up
@@ -27,7 +31,8 @@ Modelling assumptions (each needs to go in report.md):
   to the cash actually paid over the year. GradPlus is spent at HUDS cafes, so every
   meal is priced at cafe_meal_price. Its default, CAFE_MEAL_PRICE_ESTIMATE, is a
   placeholder ESTIMATE, not a collected price; results using it say so in TermCost.notes.
-* No plan: every meal is paid at guest rates.
+* No plan: every meal at the outside price (cost_outside). cost_no_plan() is the old
+  guest-rate baseline, kept only for the archived comparison.
 """
 
 import csv
@@ -127,9 +132,23 @@ def _list_price_per_week(pattern: WeeklyPattern, meal_prices: Dict[str, float]) 
 # ---------------------------------------------------------------------------- plans
 
 
+def flat_prices(price: float) -> Dict[str, float]:
+    """The same outside price for every meal type."""
+    if price < 0:
+        raise ValueError(f"price must be non-negative, got {price}")
+    return {m: float(price) for m in MEAL_TYPES}
+
+
+def cost_outside(pattern: WeeklyPattern, weeks: float, outside_price: float) -> TermCost:
+    """No plan: every meal in the pattern is eaten out or cooked at `outside_price` per meal."""
+    _check_weeks(weeks)
+    total = _list_price_per_week(pattern, flat_prices(outside_price)) * weeks
+    return _result("no plan (eat out or cook)", pattern.total * weeks, 0.0, total, total)
+
+
 def cost_no_plan(pattern: WeeklyPattern, weeks: float, prices: Prices,
                  breakfast_venue: str = "houses") -> TermCost:
-    """Baseline: pay the guest rate for every meal."""
+    """Old baseline (reference only): pay the HUDS guest rate for every meal."""
     _check_weeks(weeks)
     total = _list_price_per_week(pattern, prices.meal_prices(breakfast_venue)) * weeks
     return _result("no plan (guest rates)", pattern.total * weeks, 0.0, total, total)
@@ -173,8 +192,13 @@ def _swipe_week(counts: Dict[str, float], swipes: float, meal_prices: Dict[str, 
 
 def cost_non_resident(pattern: WeeklyPattern, weeks: float, prices: Prices, meals_per_week: int,
                       breakfast_venue: str = "houses", first_week_fraction: float = 0.0,
-                      full_first_week_swipes: bool = False) -> TermCost:
-    """Non-resident N-meals/week plan with weekly forfeiture and guest-rate overflow.
+                      full_first_week_swipes: bool = False,
+                      outside_prices: Optional[Dict[str, float]] = None) -> TermCost:
+    """Non-resident N-meals/week plan with weekly forfeiture.
+
+    Meals beyond the week's swipes are eaten out or cooked at `outside_prices` (per meal type).
+    If outside_prices is None they are priced at HUDS guest rates instead -- the archived
+    guest-rate model, kept for comparison.
 
     weeks may include a short first week (first_week_fraction of a week, e.g. 4/7 for a term
     starting on a Wednesday). By default it gets the same fraction of the weekly swipes, which
@@ -186,7 +210,7 @@ def cost_non_resident(pattern: WeeklyPattern, weeks: float, prices: Prices, meal
         raise ValueError(f"no non-resident plan with {meals_per_week} meals/week")
     if not 0 <= first_week_fraction < 1 or first_week_fraction > weeks:
         raise ValueError(f"first_week_fraction must be in [0, 1) and within the term, got {first_week_fraction}")
-    meal_prices = prices.meal_prices(breakfast_venue)
+    meal_prices = outside_prices if outside_prices is not None else prices.meal_prices(breakfast_venue)
 
     overflow_per_week, left_per_week = _swipe_week(pattern.counts(), meals_per_week, meal_prices)
     if full_first_week_swipes and first_week_fraction:

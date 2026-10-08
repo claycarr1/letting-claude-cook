@@ -55,6 +55,8 @@ Pages to fetch:
 
 ## Decision map (from instructor feedback)
 
+**Current version (2026-10-08, after the no-guest-meals decision):** the main decision map is the cheapest option for an off-campus undergraduate by **cost of a meal not eaten at HUDS** (x, a blend of cooking and eating out, about $3–$40) and **HUDS meals missed per week** (y, 0–21), with 2 weekends away per term. Everyone eats 21 meals a week; missed meals are eaten elsewhere and paid for. The instructor's chart is one panel per option (no plan, 5-, 10-, 21-meal plan) coloured by total food spending per semester on a shared scale, plus this cheapest-option panel; drafts in `figures/drafts/`. Labeled markers for typical cooking cost, cheap takeout and sit-down meals use placeholder values until real prices are collected. The original three-habit map below is archived with the guest-rate model.
+
 The main output of the project is a **decision map**: a plot where a student locates themselves by three habit inputs and reads off which plan is cheapest.
 
 - **Inputs:** meals out per week (0–14), breakfasts skipped per week (0–7), weekends away per term (0–10).

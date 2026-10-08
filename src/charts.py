@@ -175,12 +175,13 @@ def plot_swipe_cost(prices: Prices):
     ax.grid(axis="y", color=GRID_COLOR, linewidth=0.8)
     ax.set_ylim(0, max(b[1] for b in bars) * 1.15)
     ax.text(1, -0.2, "Off-campus plans", transform=ax.get_xaxis_transform(), ha="center", fontsize=9, color=MUTED)
-    ax.text(5.5, -0.2, "Guest prices, incl. 7% tax", transform=ax.get_xaxis_transform(), ha="center",
-            fontsize=9, color=MUTED)
+    ax.text(5.5, -0.2, "HUDS guest prices, incl. 7% tax (reference only)", transform=ax.get_xaxis_transform(),
+            ha="center", fontsize=9, color=MUTED)
     weeks = sum(load_term_weeks().values())
-    fig.suptitle("What one swipe costs vs paying at the door", color=INK, fontsize=12, x=0.01, ha="left")
+    fig.suptitle("What one swipe costs on each off-campus plan", color=INK, fontsize=12, x=0.01, ha="left")
     ax.set_title(f"Swipe cost = yearly plan price / swipes available over {weeks:.1f} weeks, if every swipe is used.\n"
-                 "A swipe saves money only on a meal whose bar rises above that plan's dashed line.",
+                 "A plan pays off only if a meal eaten out or cooked would cost more than its swipe. "
+                 "HUDS guest prices are what HUDS charges for a meal, shown for reference.",
                  color=MUTED, fontsize=9, loc="left")
     return fig
 
