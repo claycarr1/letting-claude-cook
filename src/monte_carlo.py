@@ -208,7 +208,7 @@ def plot_stability(result: Result, group: str = GROUP):
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch, Rectangle
 
-    from decision_map import GROUP_TITLES, INK, MUTED, PLAN_COLORS, PLAN_LABELS, SHORT_LABELS, SURFACE, X_LABEL, Y_LABEL
+    from decision_map import GROUP_TITLES, INK, MUTED, PLAN_COLORS, PLAN_LABELS, SURFACE, X_LABEL, Y_LABEL
 
     levels = list(range(WEEKENDS_AWAY_RANGE[1] + 1))
     ncols = 4
@@ -235,7 +235,7 @@ def plot_stability(result: Result, group: str = GROUP):
         ax.axis("off")
 
     shown = [p for p in GROUPS[group] if p in set(result.baseline.values())]
-    plan_handles = [Patch(facecolor=PLAN_COLORS[p], label=f"{SHORT_LABELS[p]}: {PLAN_LABELS[p]}") for p in shown]
+    plan_handles = [Patch(facecolor=PLAN_COLORS[p], label=PLAN_LABELS[p]) for p in shown]
     ref = PLAN_COLORS[shown[0]]
     strength_handles = [Patch(facecolor=_blend(ref, s, SURFACE), label=label) for _, s, label in STABILITY_BINS]
     legend_ax = axes[len(levels)]

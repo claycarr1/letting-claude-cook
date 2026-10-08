@@ -51,9 +51,9 @@ WEEKENDS_AWAY_RANGE = (0, 10)
 
 PLAN_LABELS = {
     "resident": "Resident unlimited",
-    "nr5": "Non-resident 5 meals/wk",
-    "nr10": "Non-resident 10 meals/wk",
-    "nr21": "Non-resident 21 meals/wk",
+    "nr5": "5-meal plan",
+    "nr10": "10-meal plan",
+    "nr21": "21-meal plan",
     "gp_regular": "GradPlus Regular",
     "gp_deluxe": "GradPlus Deluxe",
     "cash_guest": "No plan (pay guest rates)",
@@ -212,8 +212,8 @@ PLAN_COLORS = {
     "nr10": "#eda100", "resident": "#4a3aa7",  # fallbacks: neither wins anywhere at 2026-27 prices
 }
 SHORT_LABELS = {
-    "resident": "Resident", "nr5": "NR 5", "nr10": "NR 10", "nr21": "NR 21",
-    "gp_regular": "GP Reg", "gp_deluxe": "GP Deluxe", "cash_guest": "Cash", "cash_cafe": "Cash",
+    "resident": "Resident plan", "nr5": "5-meal plan", "nr10": "10-meal plan", "nr21": "21-meal plan",
+    "gp_regular": "GradPlus Regular", "gp_deluxe": "GradPlus Deluxe", "cash_guest": "No plan", "cash_cafe": "No plan",
 }
 X_LABEL = "Lunches, brunches & dinners eaten elsewhere per week"  # the meals_out input
 Y_LABEL = "Breakfasts skipped or eaten elsewhere per week"  # the breakfasts_skipped input
@@ -232,7 +232,6 @@ def grid(weekends_away: int, prices: Prices, group: str, **kw) -> List[List[Reco
 
 def _draw_panel(ax, cells: List[List[Recommendation]], plans: List[str], title: str,
                 avoid: Tuple[Tuple[float, float], ...] = ()):
-    from matplotlib import patheffects
     from matplotlib.colors import ListedColormap
 
     index = {p: i for i, p in enumerate(plans)}
@@ -247,29 +246,56 @@ def _draw_panel(ax, cells: List[List[Recommendation]], plans: List[str], title: 
     for side in ax.spines.values():
         side.set_visible(False)
     ax.set_aspect("equal")
-    # Direct label in each region big enough to hold one (colour is never the only cue). Largest
-    # regions first; a label that would crowd an earlier label or an `avoid` point is skipped --
-    # the legend still names every colour.
+    _label_regions(ax, cells, plans, avoid)
+
+
+def _label_regions(ax, cells: List[List[Recommendation]], plans: List[str],
+                   avoid: Tuple[Tuple[float, float], ...] = (), fontsize: float = 8, min_cells: int = 4):
+    """Direct label in each region big enough to hold one (colour is never the only cue). Largest
+    regions first; a label that would crowd an earlier label or an `avoid` point is skipped --
+    the legend still names every colour."""
+    from matplotlib import patheffects
+
+    # Rough label half-width in cells, from the axes' size on screen, so long labels stay inside.
+    nx = MEALS_OUT_RANGE[1] + 1
+    cell_px = ax.get_window_extent().width / nx
+    char_px = 0.6 * fontsize * ax.figure.dpi / 72
     regions = {plan: [(mo + 0.5, bs + 0.5) for bs, row in enumerate(cells) for mo, c in enumerate(row)
                       if c.plan == plan] for plan in plans}
     placed = list(avoid)
     for plan in sorted(plans, key=lambda q: -len(regions[q])):
         pts = regions[plan]
-        if len(pts) < 4:
+        half = len(SHORT_LABELS[plan]) * char_px / 2 / cell_px
+        if len(pts) < min_cells:
             continue
         cx = sum(x for x, _ in pts) / len(pts)
         cy = sum(y for _, y in pts) / len(pts)
-        # Put the label on the region's most interior cell (most same-plan neighbours), nearest the
-        # centroid, and keep it clear of the panel edge so it can't run into the tick labels.
+        # Prefer the region's most interior cells (most same-plan neighbours), nearest the centroid.
+        # A label goes only where its row has a run of this plan's squares wide enough to hold it
+        # (allowing it to overhang by 0.3 of a square each side), so it never spills into another region.
         own = set(pts)
         def interior(pt):
             return sum((pt[0] + dx, pt[1] + dy) in own for dx in (-1, 0, 1) for dy in (-1, 0, 1))
-        x, y = max(pts, key=lambda p: (interior(p), -((p[0] - cx) ** 2 + (p[1] - cy) ** 2)))
-        x = min(max(x, 1.4), MEALS_OUT_RANGE[1] - 0.4)
-        if any(abs(x - px) < 3.5 and abs(y - py) < 1.5 for px, py in placed):
+        spot = None
+        for px, py in sorted(pts, key=lambda q: (-interior(q), (q[0] - cx) ** 2 + (q[1] - cy) ** 2)):
+            left = right = px
+            while (left - 1, py) in own:
+                left -= 1
+            while (right + 1, py) in own:
+                right += 1
+            run_lo, run_hi = left - 0.5, right + 0.5  # cell edges of this row's run
+            if run_hi - run_lo < 2 * half - 0.6:
+                continue
+            x = min(max(px, run_lo + half - 0.3, half + 0.1), run_hi - half + 0.3, nx - half - 0.1)
+            if any(abs(x - qx) < 2 * half + 1 and abs(py - qy) < 1.5 for qx, qy in placed):
+                continue
+            spot = (x, py)
+            break
+        if spot is None:
             continue
-        placed.append((x, y))
-        ax.text(x, y, SHORT_LABELS[plan], ha="center", va="center", fontsize=8, color=INK,
+        x, y = spot
+        placed.append(spot)
+        ax.text(x, y, SHORT_LABELS[plan], ha="center", va="center", fontsize=fontsize, color=INK,
                 path_effects=[patheffects.withStroke(linewidth=2.5, foreground=SURFACE)])
 
 
@@ -277,7 +303,7 @@ def _legend(ax, plans: List[str], shown: set, **kw):
     """Legend of the options that win somewhere; the rest are listed as text, not given a swatch."""
     from matplotlib.patches import Patch
 
-    handles = [Patch(facecolor=PLAN_COLORS[p], edgecolor="none", label=f"{SHORT_LABELS[p]}: {PLAN_LABELS[p]}")
+    handles = [Patch(facecolor=PLAN_COLORS[p], edgecolor="none", label=PLAN_LABELS[p])
                for p in plans if p in shown]
     never = [PLAN_LABELS[p] for p in plans if p not in shown]
     kw = {"loc": "center left", **kw}

@@ -25,8 +25,8 @@ def test_habits_to_patterns():
 
 
 def test_full_week_undergrad():
-    # Every HUDS meal, no weekends away. NR 21: 2 x 4406 = 8812.
-    # NR 5: swipes on 5 dinners; cash for 2 dinners + 5 lunches + 2 brunches + 7 breakfasts
+    # Every HUDS meal, no weekends away. 21-meal plan: 2 x 4406 = 8812.
+    # 5-meal plan: swipes on 5 dinners; cash for 2 dinners + 5 lunches + 2 brunches + 7 breakfasts
     #   = 42.80 + 86.50 + 34.60 + 75.88 = 239.78/wk x 15 = 3596.70; term 5134.70; year 10269.40.
     r = recommend(0, 0, 0, PRICES, "undergrad_offcampus", term_weeks=TW15)
     assert r.plan == "nr21" and r.annual_cost == 8812
@@ -35,7 +35,7 @@ def test_full_week_undergrad():
 
 def test_nr5_vs_cash_boundary():
     # 6 meals out: 4 dinners, 2.857 lunches, 1.143 brunches. Swipes: 4 dinners + 1 lunch/brunch,
-    #   worth 85.60 + 17.30 = 102.90/wk x 15 = 1543.50 > 1538 -> NR 5 wins by 5.50/term = 11.00/yr.
+    #   worth 85.60 + 17.30 = 102.90/wk x 15 = 1543.50 > 1538 -> 5-meal plan wins by 5.50/term = 11.00/yr.
     r = recommend(6, 7, 0, PRICES, "undergrad_offcampus", term_weeks=TW15)
     assert r.plan == "nr5" and r.runner_up == "cash_guest" and r.gap == pytest.approx(11.00)
     # 7 meals out: 3.5 dinners + 1.5 lunch/brunch on swipes = 74.90 + 25.95 = 100.85/wk
@@ -55,7 +55,7 @@ def test_nr10_never_beats_cash():
 
 
 def test_weekend_away_weeks_costed_separately():
-    # NR 5, 0 meals out, all breakfasts skipped, 1 weekend away per term.
+    # 5-meal plan, 0 meals out, all breakfasts skipped, 1 weekend away per term.
     # Home week: 7 dinners, 5 lunches, 2 brunches; swipes on 5 dinners, cash for 2 dinners + 5 lunches
     #   + 2 brunches = 42.80 + 86.50 + 34.60 = 163.90, for 14 weeks = 2294.60.
     # Away week: 5 dinners, 5 lunches; swipes on the dinners, cash for 5 lunches = 86.50.
@@ -184,7 +184,7 @@ def test_term_weeks_from_csv():
 
 
 def test_full_week_on_real_calendar():
-    # NR 21 is a flat 4406 per term whatever the length: 8812 per year.
+    # 21-meal plan is a flat 4406 per term whatever the length: 8812 per year.
     # Paying guest rates for all 21 meals: 346.78/wk x (109/7 + 104/7 = 213/7 weeks) = 10552.31.
     c = annual_costs(0, 0, 0, PRICES, ["nr21", "cash_guest"])
     assert c["nr21"] == 8812
@@ -194,7 +194,7 @@ def test_full_week_on_real_calendar():
 def test_nr10_on_real_calendar():
     # 10 swipes are worth at most 201.70/wk. Fall (15.57 wk) -> 3140.76 > 3060, so a heavy eater
     # beats cash in fall; spring (14.86 wk) -> 2996.40 < 3060, so cash wins in spring. Over the
-    # year NR 10 can beat cash, but NR 5 or NR 21 is still cheaper everywhere on the map.
+    # year 10-meal plan can beat cash, but 5-meal plan or 21-meal plan is still cheaper everywhere on the map.
     beats_cash = cheapest = 0
     for weekends in range(11):
         for meals_out in range(15):

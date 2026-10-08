@@ -14,9 +14,9 @@ Writes:
                                          2 weekends away)
   figures/on_campus_cost_per_meal.png/.csv  the mandatory unlimited plan's cost per meal eaten, with
                                          the range across the Monte Carlo draws shaded
-  figures/yearly_cost_curves.png         yearly cost vs HUDS meals/week per off-campus option, 2 weekends away
+  figures/savings_vs_no_plan.png         each off-campus plan's yearly saving vs no plan, by HUDS meals/week
   figures/swipe_cost.png                 cost of one swipe on each off-campus plan vs guest prices
-  figures/gap_map_undergrad_offcampus.png  dollar gap between the cheapest and second-cheapest option
+  figures/gap_map_undergrad_offcampus.png  dollar gap between the cheapest and second-cheapest option, 2 weekends away
   figures/assumption_effects.png         Monte Carlo: how much each assumption changes the map
                                          (reads figures/monte_carlo_summary.json)
 The Monte Carlo stability map and summary are made by scripts/run_monte_carlo.py (about 30 seconds).
@@ -46,7 +46,7 @@ from decision_map import (  # noqa: E402
     recommend,
 )
 from model import load_prices  # noqa: E402
-from charts import plot_assumption_effects, plot_gap_map, plot_swipe_cost, plot_yearly_cost  # noqa: E402
+from charts import plot_assumption_effects, plot_gap_map, plot_savings, plot_swipe_cost  # noqa: E402
 from monte_carlo import draw_assumptions  # noqa: E402
 from on_campus import FULL_WEEK, plot_on_campus, resident_cost_per_meal  # noqa: E402
 
@@ -106,7 +106,7 @@ def main():
                         round(resident_cost_per_meal(m, prices, count_boardplus=False), 2)])
     print("wrote figures/on_campus_cost_per_meal.png and .csv")
 
-    for name, make in [("yearly_cost_curves", lambda: plot_yearly_cost(prices)),
+    for name, make in [("savings_vs_no_plan", lambda: plot_savings(prices)),
                        ("swipe_cost", lambda: plot_swipe_cost(prices)),
                        ("gap_map_undergrad_offcampus", lambda: plot_gap_map(prices))]:
         fig = make()

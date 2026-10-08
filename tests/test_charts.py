@@ -3,7 +3,7 @@ Real 2026-27 calendar: 213/7 = 30.43 weeks of dining a year."""
 
 import pytest
 
-from charts import assumption_effects, cost_per_swipe, gap_bin, habits_for_meals, switch_points, yearly_costs
+from charts import assumption_effects, cost_per_swipe, gap_bin, habits_for_meals, savings_vs_no_plan, yearly_costs
 from test_model import PRICES
 
 WEEKS = 213 / 7
@@ -26,15 +26,17 @@ def test_yearly_costs_every_meal_two_weekends_away():
     assert c["cash_guest"] == pytest.approx(10155.70, abs=0.02)
 
 
-def test_switch_points():
-    points = switch_points(PRICES)
-    assert [(below, above) for _, below, above, _ in points] == [("cash_guest", "nr5"), ("nr5", "nr21")]
-    for x, below, above, cost in points:
-        c = yearly_costs(x, PRICES, plans=[below, above])
-        assert c[below] == pytest.approx(c[above], abs=0.05)  # the lines really cross there
-        assert c[below] == pytest.approx(cost, abs=0.05)
-    assert points[0][0] == pytest.approx(11.1, abs=0.05)
-    assert points[1][0] == pytest.approx(18.6, abs=0.05)
+def test_savings_vs_no_plan():
+    # Eating nothing at HUDS, each plan "saves" minus its whole yearly price.
+    s0 = savings_vs_no_plan(0, PRICES)
+    assert s0 == pytest.approx({"nr5": -3076, "nr10": -6120, "nr21": -8812})
+    # Eating everything (2 weekends away): no plan costs 10155.70 (test above), so the 21-meal
+    # plan saves 10155.70 - 8812 = 1343.70.
+    assert savings_vs_no_plan(21, PRICES)["nr21"] == pytest.approx(1343.70, abs=0.02)
+    # The 5-meal plan starts saving money at about 11.1 meals a week.
+    assert savings_vs_no_plan(11.0, PRICES)["nr5"] < 0 < savings_vs_no_plan(11.2, PRICES)["nr5"]
+    # The 10-meal plan never saves money, at any number of meals.
+    assert all(savings_vs_no_plan(x / 2, PRICES)["nr10"] < 0 for x in range(43))
 
 
 def test_cost_per_swipe():
