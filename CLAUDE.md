@@ -33,7 +33,7 @@ Pages to fetch:
 - One swipe per meal period; unused meals forfeited weekly after Saturday dinner. Non-refundable.
 - Fall term Sept 2 – Dec 19, Spring Jan 25 – May 15.
 
-**Guest meal rates (2026–27, incl. 7% tax):** breakfast ~$10.84 (Houses) / ~$12.90 (Annenberg & Quincy Mon–Sat); brunch and lunch ~$17.30; dinner ~$21.40. Source: HUDS undergraduate FAQ page.
+**Guest meal rates (2026–27, incl. 7% tax):** breakfast ~$10.84 (Houses) / ~$12.90 (Annenberg & Quincy Mon–Sat); brunch and lunch ~$17.30; dinner ~$21.40. Source: HUDS undergraduate FAQ page. **Reference only — not an option a student can choose** (see "Guest meals are not an option" under Decisions).
 
 **Grad student GradPlus plan:** Regular $100/month, Deluxe $150/month, declining balance, 10% discount on purchases at HUDS cafes, unused balance forfeited at end of academic year. Some GSAS residents also have a required Commons at Lehman Hall plan (~$3,190/yr, lunch and dinner weekdays).
 
@@ -93,6 +93,16 @@ Python 3.9+. pandas, numpy, matplotlib (or plotly), pytest. Optional: requests +
 - BoardPlus ($65/semester) is credited at face value; the on-campus chart also shows it unspent. The $65 is listed with 2025–26 dates and assumed to still apply.
 - dining.harvard.edu blocks scripted requests (HTTP 403). HUDS pages are saved from a browser into `data/raw/manual/` and parsed by `scripts/fetch_prices.py`, which verifies each page's canonical URL.
 
+### Guest meals are not an option (decided 2026-10-08)
+
+- **Rule:** a student without a meal plan can't buy a guest meal unless accompanied by a Harvard student on a plan. Source: the user's own knowledge of HUDS rules; **to be confirmed with HUDS.** The saved FAQ is consistent but not explicit: it describes guest meals as something "students on the meal plan may host … and may pay for them with cash or BoardPlus"; the only case of affiliates paying the guest rate themselves is summer dining at Winthrop and Adams.
+- **"No plan" means eating out in Cambridge or cooking.** Meals not covered by a plan's swipes are also eaten out or cooked, not bought at guest rates.
+- **Guest rates stay only as a reference** ("what HUDS charges for a meal"), not as an option.
+- **Until real prices are collected,** the price of a meal out is a variable (about $8–$40), and cooking is a separate cost per meal.
+- **The guest-rate results are kept** (in `figures/appendix/`) so old and new can be compared.
+- Graduate students are unaffected: HUDS cafés sell to anyone, so paying cash at the café is a real option.
+
 ## Open questions for the user
 
+- Confirm with HUDS that a student without a plan can't buy guest meals on their own.
 - Can the user export their own swipe history?

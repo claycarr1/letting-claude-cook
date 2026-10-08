@@ -426,6 +426,7 @@ def plot_meal_type_savings(prices: Prices, weekends_away: int = 2):
                  x=0.01, ha="left")
     ax.set_title(f"Off-campus undergraduate who eats every other meal at HUDS (all 21 a week except the ones skipped), "
                  f"{weekends_away} weekends away per term.\nThe plan's swipes go on dinners first, so skipping "
-                 "breakfasts or lunches saves the same on both options; skipping dinners does not.",
+                 "breakfasts or lunches saves the same on both options; skipping dinners does not.\n"
+                 "Compares only the 5-meal plan with no plan.",
                  color=MUTED, fontsize=9, loc="left")
     return fig
