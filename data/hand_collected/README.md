@@ -11,6 +11,7 @@ Aim for a spread: roughly 10 breakfast, 10 lunch and 10 dinner items, from cheap
 | `restaurant` | Name as on the menu |
 | `neighborhood` | `Harvard Sq` or `Central Sq` |
 | `address` | Street address |
+| `service` | `counter` (order at the counter / takeout) or `sit-down` (table service) — decides whether a tip is added |
 | `meal_type` | `breakfast`, `lunch` or `dinner` |
 | `item` | The dish, e.g. "chicken burrito bowl" |
 | `menu_price` | Menu price in dollars, **before** tax and tip, e.g. `13.95` (tax and tip are added in code, so the same rule applies to every row) |
@@ -21,7 +22,7 @@ Aim for a spread: roughly 10 breakfast, 10 lunch and 10 dinner items, from cheap
 | `notes` | Anything odd: lunch special, student discount, portion size |
 
 Example row (don't copy into the file):
-`Example Cafe,Harvard Sq,1 Example St,lunch,turkey sandwich,12.50,no,in person,2026-10-10,CC,lunch special`
+`Example Cafe,Harvard Sq,1 Example St,counter,lunch,turkey sandwich,12.50,no,in person,2026-10-10,CC,lunch special`
 
 ## `grocery_basket.csv` — optional check on the cooking cost
 
