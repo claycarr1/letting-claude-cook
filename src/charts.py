@@ -20,7 +20,14 @@ from decision_map import (
     annual_costs,
     grid,
 )
-from model import MAX_PER_WEEK, Prices, load_term_weeks
+from model import (
+    CAFE_MEAL_PRICE_ESTIMATE,
+    MAX_PER_WEEK,
+    Prices,
+    WeeklyPattern,
+    cost_gradplus,
+    load_term_weeks,
+)
 
 FULL_WEEK = sum(MAX_PER_WEEK.values())  # 21
 OFF_CAMPUS = GROUPS["undergrad_offcampus"]
@@ -61,12 +68,21 @@ def _style(ax):
 
 
 def _spread_labels(ys: List[float], min_gap: float) -> List[float]:
-    """Nudge label positions apart so none are closer than min_gap, keeping their order."""
+    """Nudge label positions apart so none are closer than min_gap, keeping their order. Each group
+    of labels that had to move is re-centred on its original positions, so it spreads both ways."""
     order = sorted(range(len(ys)), key=lambda i: ys[i])
     out = list(ys)
+    groups = [[order[0]]]
     for a, b in zip(order, order[1:]):
         if out[b] - out[a] < min_gap:
             out[b] = out[a] + min_gap
+            groups[-1].append(b)
+        else:
+            groups.append([b])
+    for g in groups:
+        shift = sum(ys[i] for i in g) / len(g) - sum(out[i] for i in g) / len(g)
+        for i in g:
+            out[i] += shift
     return out
 
 
@@ -105,7 +121,7 @@ def plot_savings(prices: Prices, weekends_away: int = 2):
     ax.set_ylim(y_min, max(max(c) for c in curves.values()) + 400)
     ax.set_xticks(range(0, FULL_WEEK + 1, 3))
     ax.set_xlabel("Meals eaten at HUDS per week", color=MUTED)
-    ax.set_ylabel("Savings compared to no plan, per year", color=MUTED)
+    ax.set_ylabel("How much cheaper than paying at the door (per year)", color=MUTED)
     ax.yaxis.set_major_formatter(lambda v, _: f"-${-v:,.0f}" if v < 0 else f"${v:,.0f}")
     ax.grid(axis="y", color=GRID_COLOR, linewidth=0.8)
     fig.suptitle("How much each plan saves compared to no plan", color=INK, fontsize=12, x=0.01, ha="left")
@@ -271,4 +287,145 @@ def plot_assumption_effects(summary: dict, x_max: float = 15):
     ax.grid(axis="x", color=GRID_COLOR, linewidth=0.8)
     fig.suptitle("Which assumption changes the off-campus map most?", color=INK, fontsize=12, x=0.01, ha="left")
     ax.set_title(f"Monte Carlo, {summary['runs']:,} runs", color=MUTED, fontsize=9, loc="left")
+    return fig
+
+
+# ---------------------------------------------------------------------------- 5. grad students: cafe spending
+
+GRAD_OPTIONS = ["cash_cafe", "gp_regular", "gp_deluxe"]
+
+
+def grad_year_costs(spending: float, prices: Prices, term_weeks: Optional[Dict[str, float]] = None) -> Dict[str, float]:
+    """What a grad student actually pays in a year under each option, if they would spend `spending`
+    a year at HUDS cafes at menu prices, evenly across the weeks of both terms.
+
+    The answer doesn't depend on the cafe meal price: it only converts spending into meals and back.
+    """
+    term_weeks = term_weeks or load_term_weeks()
+    price = CAFE_MEAL_PRICE_ESTIMATE
+    meals = spending / (price * sum(term_weeks.values()))
+    if meals > FULL_WEEK:
+        raise ValueError("spending is more than 21 cafe meals a week")
+    pattern = WeeklyPattern(**{m: n * meals / FULL_WEEK for m, n in MAX_PER_WEEK.items()})
+    out = {"cash_cafe": float(spending)}
+    for tier in ("regular", "deluxe"):
+        fall = cost_gradplus(pattern, term_weeks["fall"], prices, tier, "fall", cafe_meal_price=price)
+        spring = cost_gradplus(pattern, term_weeks["spring"], prices, tier, "spring", carry_in=fall.carry_out,
+                               cafe_meal_price=price)
+        out[f"gp_{tier}"] = fall.total_cost + spring.total_cost
+    return out
+
+
+def grad_switch_points(prices: Prices, max_spending: float = 3000, step: float = 5) -> List[Tuple[float, str, str]]:
+    """Yearly cafe spending at which the cheapest grad option changes: [(spending, below, above)]."""
+    def cheapest(s):
+        c = grad_year_costs(s, prices)
+        return min(GRAD_OPTIONS, key=lambda o: (c[o], GRAD_OPTIONS.index(o)))
+
+    points, prev_s, prev = [], 0.0, cheapest(0.0)
+    s = step
+    while s <= max_spending:
+        cur = cheapest(s)
+        if cur != prev:
+            lo, hi = prev_s, s
+            for _ in range(40):
+                mid = (lo + hi) / 2
+                c = grad_year_costs(mid, prices)
+                lo, hi = (mid, hi) if c[prev] < c[cur] else (lo, mid)
+            points.append(((lo + hi) / 2, prev, cur))
+        prev_s, prev = s, cur
+        s += step
+    return points
+
+
+def plot_grad_spending(prices: Prices, max_spending: float = 2500):
+    import matplotlib.pyplot as plt
+    from matplotlib import patheffects
+
+    points = grad_switch_points(prices, max_spending)
+    edges = [0.0] + [s for s, _, _ in points] + [max_spending]
+    options = [points[0][1]] + [above for _, _, above in points] if points else ["cash_cafe"]
+    names = {"cash_cafe": "No plan", "gp_regular": "GradPlus Regular", "gp_deluxe": "GradPlus Deluxe"}
+
+    fig, ax = plt.subplots(figsize=(10, 3.2), facecolor=SURFACE, layout="constrained")
+    ax.set_facecolor(SURFACE)
+    halo = [patheffects.withStroke(linewidth=3, foreground=SURFACE)]
+    for (lo, hi), opt in zip(zip(edges, edges[1:]), options):
+        ax.barh(0, hi - lo, left=lo, height=0.6, color=PLAN_COLORS[opt], edgecolor=SURFACE, linewidth=2)
+        ax.text((lo + hi) / 2, 0, names[opt], ha="center", va="center", fontsize=11, color=INK, path_effects=halo)
+    for s, below, above in points:
+        ax.plot([s, s], [-0.42, 0.42], color=INK, linewidth=1.5)
+        ax.text(s, 0.48, f"${s:,.0f}", ha="center", va="bottom", fontsize=10, color=INK)
+    ax.set_xlim(0, max_spending)
+    ax.set_ylim(-0.5, 0.75)
+    ax.set_yticks([])
+    ax.xaxis.set_major_formatter(lambda v, _: f"${v:,.0f}")
+    ax.tick_params(colors=MUTED, length=0)
+    for side in ("top", "right", "left"):
+        ax.spines[side].set_visible(False)
+    ax.spines["bottom"].set_color(AXIS_COLOR)
+    ax.set_xlabel("What you would spend at HUDS cafés in a year, at menu prices", color=MUTED)
+    fig.suptitle("Graduate students: which option is cheapest for your café spending", color=INK, fontsize=12,
+                 x=0.01, ha="left")
+    ax.set_title("GradPlus Regular costs \\$900/yr and Deluxe \\$1,350/yr, both with 10% off and unspent money lost "
+                 "in May. Spending spread evenly over the year.", color=MUTED, fontsize=9, loc="left")
+    return fig
+
+
+# ---------------------------------------------------------------------------- 6. which meals you skip
+
+MEAL_TYPE_LINES = {  # name -> (how annual_costs is called for x meals of that type skipped, colour)
+    "breakfasts": ("Skipping breakfasts", "#e87ba4"),
+    "lunches": ("Skipping lunches or brunches", "#008300"),
+    "dinners": ("Skipping dinners", "#4a3aa7"),
+}
+
+
+def meal_type_savings(skipped: float, meal_type: str, prices: Prices, weekends_away: int = 2) -> float:
+    """How much cheaper the 5-meal plan is than no plan per year, for a student who eats every
+    HUDS meal except `skipped` meals a week of one type (lunches: weekday lunches, then brunches)."""
+    if meal_type == "breakfasts":
+        kw = dict(meals_out=0, breakfasts_skipped=skipped)
+    elif meal_type == "lunches":
+        kw = dict(meals_out=skipped, breakfasts_skipped=0, meals_out_from="lunches_first")
+    elif meal_type == "dinners":
+        kw = dict(meals_out=skipped, breakfasts_skipped=0, meals_out_from="dinners_first")
+    else:
+        raise ValueError(f"meal_type must be one of {list(MEAL_TYPE_LINES)}")
+    if not 0 <= skipped <= 7:
+        raise ValueError("skipped must be 0..7")
+    extra = {"meals_out_from": kw.pop("meals_out_from")} if "meals_out_from" in kw else {}
+    c = annual_costs(kw["meals_out"], kw["breakfasts_skipped"], weekends_away, prices, ["nr5", "cash_guest"], **extra)
+    return c["cash_guest"] - c["nr5"]
+
+
+def plot_meal_type_savings(prices: Prices, weekends_away: int = 2):
+    import matplotlib.pyplot as plt
+
+    xs = [i * 0.25 for i in range(29)]
+    fig, ax = plt.subplots(figsize=(10, 5.8), facecolor=SURFACE, layout="constrained")
+    _style(ax)
+    ax.axhline(0, color=AXIS_COLOR, linewidth=1.2, zorder=2)
+    curves = {k: [meal_type_savings(x, k, prices, weekends_away) for x in xs] for k in MEAL_TYPE_LINES}
+    # Breakfasts and lunches give the same line, so the second is drawn dashed on top of the first.
+    styles = {"breakfasts": dict(linewidth=4, linestyle="-"), "lunches": dict(linewidth=2, linestyle=(0, (5, 3))),
+              "dinners": dict(linewidth=2.5, linestyle="-")}
+    for k, (label, color) in MEAL_TYPE_LINES.items():
+        ax.plot(xs, curves[k], color=color, zorder=3, **styles[k])
+    ends = [curves[k][-1] for k in MEAL_TYPE_LINES]
+    for (k, (label, color)), y in zip(MEAL_TYPE_LINES.items(), _spread_labels(ends, min_gap=45)):
+        ax.text(7.12, y, label, va="center", fontsize=10, weight="bold", color=color if k != "breakfasts" else "#b8467a")
+    ax.text(0.08, 10, "Above $0: the 5-meal plan is cheaper", fontsize=9, color=MUTED, va="bottom")
+    ax.text(0.08, -10, "Below $0: paying at the door is cheaper", fontsize=9, color=MUTED, va="top")
+    ax.set_xlim(0, 7)
+    ax.set_xlabel("Meals of that type skipped (or eaten elsewhere) per week", color=MUTED)
+    ax.set_ylabel("How much cheaper the 5-meal plan is (per year)", color=MUTED)
+    ax.yaxis.set_major_formatter(lambda v, _: f"-${-v:,.0f}" if v < 0 else f"${v:,.0f}")
+    ax.grid(axis="y", color=GRID_COLOR, linewidth=0.8)
+    fig.suptitle("Skipping dinners is what makes the 5-meal plan lose to paying at the door", color=INK, fontsize=12,
+                 x=0.01, ha="left")
+    ax.set_title(f"Off-campus undergraduate who eats every other meal at HUDS (all 21 a week except the ones skipped), "
+                 f"{weekends_away} weekends away per term.\nThe plan's swipes go on dinners first, so skipping "
+                 "breakfasts or lunches saves the same on both options; skipping dinners does not.",
+                 color=MUTED, fontsize=9, loc="left")
     return fig

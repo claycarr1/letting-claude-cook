@@ -204,13 +204,13 @@ def strength_for(stability: float) -> float:
     return STABILITY_BINS[-1][1]
 
 
-def plot_stability(result: Result, group: str = GROUP):
+def plot_stability(result: Result, group: str = GROUP, weekends_levels=None):
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch, Rectangle
 
     from decision_map import GROUP_TITLES, INK, MUTED, PLAN_COLORS, PLAN_LABELS, SURFACE, X_LABEL, Y_LABEL
 
-    levels = list(range(WEEKENDS_AWAY_RANGE[1] + 1))
+    levels = list(weekends_levels if weekends_levels is not None else range(WEEKENDS_AWAY_RANGE[1] + 1))
     ncols = 4
     nrows = -(-(len(levels) + 1) // ncols)
     fig, axes = plt.subplots(nrows, ncols, figsize=(4.2 * ncols, 2.9 * nrows + 1.4), facecolor=SURFACE,
@@ -246,7 +246,8 @@ def plot_stability(result: Result, group: str = GROUP):
                      title="How often it stays cheapest", title_fontsize=10, alignment="left")
 
     fig.supxlabel(X_LABEL, color=MUTED, fontsize=10)
-    fig.supylabel(Y_LABEL, color=MUTED, fontsize=10)
+    # A single row is too short for the label on one line.
+    fig.supylabel(Y_LABEL if nrows > 1 else Y_LABEL.replace(" or eaten", "\nor eaten"), color=MUTED, fontsize=10)
     wks = f"{WEEKS_RANGE[0]:g}-{WEEKS_RANGE[1]:g}"
     fig.suptitle(f"How stable is the decision map? {GROUP_TITLES[group]}, {len(result.draws):,} runs\n"
                  f"Each run draws weeks per term ({wks}), full or partial first-week swipes, meals out spread or "

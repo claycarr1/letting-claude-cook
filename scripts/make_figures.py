@@ -5,21 +5,25 @@ Usage:
   .venv/bin/python scripts/make_figures.py
   .venv/bin/python scripts/make_figures.py --you-are-here 4 3 2 --group undergrad_offcampus --label You
 
-Writes:
-  figures/decision_map_<group>.png/.csv  for each group in MAP_GROUPS (one panel per weekends-away
-                                         level; CSV has every cell's costs, cheapest plan and gap)
-  figures/meals_out_comparison.png       meals out spread vs dinners first vs lunches first, 2 weekends away
-  figures/you_are_here.png               the --you-are-here habits on their map (default: the
+Main figures (figures/):
+  decision_map_undergrad_offcampus.png/.csv  cheapest option, panels for 0, 5 and 10 weekends away
+                                             (CSV: every square at every weekends-away level)
+  you_are_here.png                       the --you-are-here habits on their map (default: the
                                          example student, 4 meals out, 3 breakfasts skipped,
                                          2 weekends away)
-  figures/on_campus_cost_per_meal.png/.csv  the mandatory unlimited plan's cost per meal eaten, with
+  grad_cafe_spending.png                 graduate students: cheapest option by yearly cafe spending
+  meal_type_savings.png                  5-meal plan vs no plan when skipping breakfasts, lunches or dinners
+  savings_vs_no_plan.png                 each off-campus plan's yearly saving vs no plan, by HUDS meals/week
+  swipe_cost.png                         cost of one swipe on each off-campus plan vs guest prices
+  on_campus_cost_per_meal.png/.csv       the mandatory unlimited plan's cost per meal eaten, with
                                          the range across the Monte Carlo draws shaded
-  figures/savings_vs_no_plan.png         each off-campus plan's yearly saving vs no plan, by HUDS meals/week
-  figures/swipe_cost.png                 cost of one swipe on each off-campus plan vs guest prices
-  figures/gap_map_undergrad_offcampus.png  dollar gap between the cheapest and second-cheapest option, 2 weekends away
-  figures/assumption_effects.png         Monte Carlo: how much each assumption changes the map
+  assumption_effects.png                 Monte Carlo: how much each assumption changes the map
                                          (reads figures/monte_carlo_summary.json)
-The Monte Carlo stability map and summary are made by scripts/run_monte_carlo.py (about 30 seconds).
+Appendix (figures/appendix/):
+  decision_map_undergrad_offcampus_all_weekends.png  every weekends-away level (0-10)
+  decision_map_grad.png/.csv             the graduate decision map
+  gap_map_undergrad_offcampus.png        dollar gap between the cheapest and second-cheapest option
+The Monte Carlo stability maps and summary are made by scripts/run_monte_carlo.py (about 30 seconds).
 """
 
 import argparse
@@ -40,17 +44,25 @@ from decision_map import (  # noqa: E402
     GROUPS,
     MEALS_OUT_RANGE,
     WEEKENDS_AWAY_RANGE,
+    MAIN_WEEKENDS,
     plot_decision_map,
-    plot_meals_out_comparison,
     plot_you_are_here,
     recommend,
 )
 from model import load_prices  # noqa: E402
-from charts import plot_assumption_effects, plot_gap_map, plot_savings, plot_swipe_cost  # noqa: E402
+from charts import (  # noqa: E402
+    plot_assumption_effects,
+    plot_gap_map,
+    plot_grad_spending,
+    plot_meal_type_savings,
+    plot_savings,
+    plot_swipe_cost,
+)
 from monte_carlo import draw_assumptions  # noqa: E402
 from on_campus import FULL_WEEK, plot_on_campus, resident_cost_per_meal  # noqa: E402
 
 OUT = ROOT / "figures"
+APPENDIX = OUT / "appendix"
 # The all-plans map is deliberately not drawn: mixing student groups is misleading (see report.md).
 MAP_GROUPS = ["undergrad_offcampus", "grad"]
 
@@ -81,20 +93,21 @@ def main():
 
     prices = load_prices()
     OUT.mkdir(exist_ok=True)
-    for group in MAP_GROUPS:
-        fig = plot_decision_map(prices, group)
-        fig.savefig(OUT / f"decision_map_{group}.png", dpi=150, facecolor=fig.get_facecolor())
-        write_table(prices, group, OUT / f"decision_map_{group}.csv")
-        print(f"wrote figures/decision_map_{group}.png and .csv")
+    APPENDIX.mkdir(exist_ok=True)
 
-    fig = plot_meals_out_comparison(prices)
-    fig.savefig(OUT / "meals_out_comparison.png", dpi=150, facecolor=fig.get_facecolor())
-    print("wrote figures/meals_out_comparison.png")
+    def save(fig, path):
+        fig.savefig(path, dpi=150, facecolor=fig.get_facecolor())
+        print(f"wrote {path.relative_to(ROOT)}")
+
+    group = "undergrad_offcampus"
+    save(plot_decision_map(prices, group, MAIN_WEEKENDS), OUT / f"decision_map_{group}.png")
+    save(plot_decision_map(prices, group), APPENDIX / f"decision_map_{group}_all_weekends.png")
+    write_table(prices, group, OUT / f"decision_map_{group}.csv")
+    save(plot_decision_map(prices, "grad"), APPENDIX / "decision_map_grad.png")
+    write_table(prices, "grad", APPENDIX / "decision_map_grad.csv")
 
     mo, bs, we = args.you_are_here
-    fig = plot_you_are_here(mo, bs, int(we), prices, args.group, label=args.label)
-    fig.savefig(OUT / "you_are_here.png", dpi=150, facecolor=fig.get_facecolor())
-    print("wrote figures/you_are_here.png")
+    save(plot_you_are_here(mo, bs, int(we), prices, args.group, label=args.label), OUT / "you_are_here.png")
 
     fig = plot_on_campus(prices, band_draws=draw_assumptions())
     fig.savefig(OUT / "on_campus_cost_per_meal.png", dpi=150, facecolor=fig.get_facecolor())
@@ -106,12 +119,11 @@ def main():
                         round(resident_cost_per_meal(m, prices, count_boardplus=False), 2)])
     print("wrote figures/on_campus_cost_per_meal.png and .csv")
 
-    for name, make in [("savings_vs_no_plan", lambda: plot_savings(prices)),
-                       ("swipe_cost", lambda: plot_swipe_cost(prices)),
-                       ("gap_map_undergrad_offcampus", lambda: plot_gap_map(prices))]:
-        fig = make()
-        fig.savefig(OUT / f"{name}.png", dpi=150, facecolor=fig.get_facecolor())
-        print(f"wrote figures/{name}.png")
+    save(plot_grad_spending(prices), OUT / "grad_cafe_spending.png")
+    save(plot_meal_type_savings(prices), OUT / "meal_type_savings.png")
+    save(plot_savings(prices), OUT / "savings_vs_no_plan.png")
+    save(plot_swipe_cost(prices), OUT / "swipe_cost.png")
+    save(plot_gap_map(prices), APPENDIX / "gap_map_undergrad_offcampus.png")
 
     summary_path = OUT / "monte_carlo_summary.json"
     if summary_path.exists():

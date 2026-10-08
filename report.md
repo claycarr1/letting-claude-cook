@@ -55,7 +55,7 @@ For off-campus undergraduates choosing between the 5-meal plan and paying as you
 - **If the meals you eat elsewhere are mostly dinners, lean toward paying as you go.** The 5-meal plan's swipes are worth the most on dinners ($21.40 at guest rates), so a student who eats dinner out has less to spend them on, and paying at the door for the lunches and brunches they do eat at HUDS ($17.30) is cheaper. Across the whole map, the 5-meal plan is cheapest in 272 of 1,320 squares, down from 534 on the main map.
 - **If they are mostly lunches, lean toward the 5-meal plan.** The student still eats most dinners at HUDS, so all five swipes go on the most expensive meal and the plan is good value. The 5-meal plan is cheapest in 786 of 1,320 squares.
 
-`figures/meals_out_comparison.png` shows the three settings side by side for a student away 2 weekends a term:
+For a student away 2 weekends a term, the three settings give:
 
 | Meals eaten elsewhere | Squares where the 5-meal plan is cheapest (of 120) | It wins up to about … meals elsewhere a week | Example student (4 elsewhere, 3 breakfasts skipped) |
 |---|---|---|---|
@@ -65,13 +65,23 @@ For off-campus undergraduates choosing between the 5-meal plan and paying as you
 
 For the example student, the 5-meal plan's yearly cost changes only a little ($6,780 spread or dinners first, $6,918 lunches first). The bigger swing is in paying as you go, which depends on what they still eat at HUDS: $6,937 spread out, $6,696 dinners first (they eat cheaper lunches and brunches at HUDS), and $7,098 lunches first (they eat their dinners at HUDS).
 
+`figures/meal_type_savings.png` shows why, one meal type at a time. Starting from a student who eats every meal at HUDS, skipping breakfasts or lunches/brunches leaves the 5-meal plan's advantage unchanged (about $180 a year), because those meals were paid at the door under both options. Skipping dinners is different: once fewer than about 5 dinners a week are left, the swipes move onto cheaper lunches and the advantage falls, reaching $0 at about 3.3 dinners skipped a week and -$444 when all 7 are skipped.
+
 **The Monte Carlo check only compared spread-out vs dinners-first** (50/50). Lunches first is not part of it, so the stability percentages above say nothing about it; it is shown here as a separate, deterministic comparison.
+
+### How much is at stake
+
+For a student away 2 weekends a term, picking the right option near the borders between plans usually saves little (a median of $36 a year, and under $150 in three-quarters of border squares), while at the edges it saves a lot: $1,400–3,100 a year for students who eat almost nothing at HUDS, and about $1,160 a year (the 21-meal plan) for one who eats almost everything.
 
 ## Supporting figures
 
-All made by `scripts/make_figures.py` (the last one reads the Monte Carlo summary written by `scripts/run_monte_carlo.py`).
+All made by `scripts/make_figures.py` (the last one reads the Monte Carlo summary written by `scripts/run_monte_carlo.py`). Full-detail versions are in `figures/appendix/`: the decision and stability maps at every weekends-away level (0–10), the graduate decision map, and the map of the dollar gap between the cheapest and second-cheapest option.
+
+- **`figures/decision_map_undergrad_offcampus.png`** — The cheapest option for off-campus undergraduates by meals eaten elsewhere and breakfasts skipped, at 0, 5 and 10 weekends away per term.
+- **`figures/stability_map_undergrad_offcampus.png`** — The same three panels, faded where the Monte Carlo runs often disagree with the main map.
+- **`figures/grad_cafe_spending.png`** — For graduate students, the cheapest option by how much they would spend at HUDS cafés in a year: no plan below $933, GradPlus Regular from $933 to $1,604, GradPlus Deluxe above $1,604 (this does not depend on the estimated cafe meal price).
+- **`figures/meal_type_savings.png`** — How much cheaper the 5-meal plan is than paying at the door as one type of meal is skipped: skipping breakfasts or lunches leaves it about $180 a year ahead, skipping more than about 3 dinners a week puts it behind.
 
 - **`figures/savings_vs_no_plan.png`** — How much each off-campus plan saves per year compared to no plan, against meals eaten at HUDS per week (every meal type cut evenly, 2 weekends away per term): the 5-meal plan starts saving at about 11 meals a week, the 21-meal plan at about 18, and the 10-meal plan never rises above $0.
 - **`figures/swipe_cost.png`** — What one swipe costs on each off-campus plan if every swipe is used ($20.22 on the 5-meal plan, $20.11 on the 10-meal, $13.79 on the 21-meal), drawn as dashed lines across the guest prices: only dinner ($21.40) rises above the 5- and 10-meal lines, while lunch, brunch and dinner all rise above the 21-meal line.
-- **`figures/gap_map_undergrad_offcampus.png`** — For a student away 2 weekends a term, how many dollars a year the winning option (labelled in each region) saves over the runner-up: the saving is smallest (under $150) next to the boundaries between plans and largest (over $1,200) for students who eat almost nothing at HUDS.
 - **`figures/assumption_effects.png`** — From the Monte Carlo runs, how much more of the off-campus map changes its answer under one setting of each assumption than the other: which meals are eaten elsewhere matters most (11.9 percentage points), far more than weeks per term (2.6), first-week swipes (1.5) or breakfast price (1.0).

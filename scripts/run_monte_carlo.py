@@ -7,7 +7,8 @@ Usage:
 
 Writes:
   figures/stability_map_undergrad_offcampus.png  each square coloured by its main-map plan, faded
-                                                 by how often that plan stays cheapest
+                                                 by how often that plan stays cheapest (0, 5 and
+                                                 10 weekends away; every level in figures/appendix/)
   figures/stability_map_undergrad_offcampus.csv  every square: main-map plan, stability, most
                                                  common alternative and its share
   figures/monte_carlo_draws.csv                  the assumptions drawn in every run
@@ -28,6 +29,7 @@ import matplotlib  # noqa: E402
 
 matplotlib.use("Agg")
 
+from decision_map import MAIN_WEEKENDS  # noqa: E402
 from model import load_prices  # noqa: E402
 from monte_carlo import (  # noqa: E402
     CELLS, GROUP, N_RUNS, SEED, draw_to_dict, factor_effects, nr10_summary, plot_stability, run,
@@ -50,8 +52,11 @@ def main():
     print(f"{args.runs} runs x {len(CELLS)} squares in {elapsed:.1f}s")
 
     OUT.mkdir(exist_ok=True)
-    fig = plot_stability(result)
+    fig = plot_stability(result, weekends_levels=MAIN_WEEKENDS)
     fig.savefig(OUT / f"stability_map_{GROUP}.png", dpi=150, facecolor=fig.get_facecolor())
+    (OUT / "appendix").mkdir(exist_ok=True)
+    fig = plot_stability(result)
+    fig.savefig(OUT / "appendix" / f"stability_map_{GROUP}_all_weekends.png", dpi=150, facecolor=fig.get_facecolor())
 
     with (OUT / f"stability_map_{GROUP}.csv").open("w", newline="") as f:
         w = csv.writer(f)

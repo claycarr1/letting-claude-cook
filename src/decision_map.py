@@ -48,6 +48,7 @@ from model import (
 MEALS_OUT_RANGE = (0, 14)
 BREAKFASTS_SKIPPED_RANGE = (0, 7)
 WEEKENDS_AWAY_RANGE = (0, 10)
+MAIN_WEEKENDS = (0, 5, 10)  # panels on the main-text maps; the appendix has every level
 
 PLAN_LABELS = {
     "resident": "Resident unlimited",
@@ -336,7 +337,8 @@ def plot_decision_map(prices: Prices, group: str, weekends_levels=range(WEEKENDS
         ax.axis("off")
     _legend(axes[len(levels)], plans, shown)
     fig.supxlabel(X_LABEL, color=MUTED, fontsize=10)
-    fig.supylabel(Y_LABEL, color=MUTED, fontsize=10)
+    # A single row is too short for the label on one line.
+    fig.supylabel(Y_LABEL if nrows > 1 else Y_LABEL.replace(" or eaten", "\nor eaten"), color=MUTED, fontsize=10)
     fig.suptitle(f"Decision map: {GROUP_TITLES[group]}\nCheapest option per academic year, 2026-27 prices",
                  color=INK, fontsize=13, x=0.01, ha="left")
     return fig
@@ -372,31 +374,4 @@ def plot_you_are_here(meals_out: float, breakfasts_skipped: float, weekends_away
     fig.suptitle(f"{label}: cheapest is {rec.label} (\\${rec.annual_cost:,.2f}/yr), {gap} {rec.runner_up_label}",
                  color=INK, fontsize=11, x=0.02, ha="left")
     _legend(ax, plans, {c.plan for row in cells for c in row}, loc="upper left", bbox_to_anchor=(1.03, 1))
-    return fig
-
-
-def plot_meals_out_comparison(prices: Prices, weekends_away: int = 2, group: str = "undergrad_offcampus",
-                              example: Tuple[float, float] = (4, 3), **kw):
-    """Three maps side by side at one weekends-away level: meals out spread, dinners first, lunches first."""
-    import matplotlib.pyplot as plt
-
-    plans = GROUPS[group]
-    fig, axes = plt.subplots(1, 3, figsize=(17, 4.4), facecolor=SURFACE, layout="constrained")
-    shown = set()
-    dot = (example[0] + 0.5, example[1] + 0.5)
-    for ax, how, title in [(axes[0], "spread", "Spread over lunch, brunch & dinner (main map)"),
-                           (axes[1], "dinners_first", "Mostly dinners (dinners first)"),
-                           (axes[2], "lunches_first", "Mostly lunches (lunches, then brunches, first)")]:
-        cells = grid(weekends_away, prices, group, meals_out_from=how, **kw)
-        shown |= {c.plan for row in cells for c in row}
-        _draw_panel(ax, cells, plans, title, avoid=(dot, (dot[0], dot[1] + 1)))
-        rec = recommend(example[0], example[1], weekends_away, prices, group, meals_out_from=how, **kw)
-        ax.plot(*dot, "o", markersize=11, color=INK, markeredgecolor=SURFACE, markeredgewidth=2.5, zorder=5)
-        ax.annotate(f"Example student: {SHORT_LABELS[rec.plan]}", dot, xytext=(0, 12), textcoords="offset points",
-                    ha="center", fontsize=8.5, color=INK, bbox=dict(boxstyle="round,pad=0.25", fc=SURFACE, ec="none"))
-        ax.set_xlabel(X_LABEL, color=MUTED, fontsize=9)
-    axes[0].set_ylabel(Y_LABEL, color=MUTED, fontsize=9)
-    _legend(axes[2], plans, shown, loc="upper left", bbox_to_anchor=(1.03, 1))
-    fig.suptitle(f"Which meals you eat elsewhere changes the answer ({GROUP_TITLES[group].lower()}, "
-                 f"{_plural(weekends_away, 'weekend')} away per term)", color=INK, fontsize=12, x=0.01, ha="left")
     return fig
