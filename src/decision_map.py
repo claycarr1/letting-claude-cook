@@ -52,11 +52,15 @@ BREAKFASTS_SKIPPED_RANGE = (0, 7)
 WEEKENDS_AWAY_RANGE = (0, 10)
 MAIN_WEEKENDS = (0, 5, 10)  # panels on the main-text maps; the appendix has every level
 
+# The 21-meal plan costs the same as the on-campus unlimited plan ($8,812 a year after BoardPlus)
+# and covers the same 21 meals a week (tests/test_on_campus.py), so it is named for both.
+NR21_NAME = "21-meal plan (= on-campus unlimited plan)"
+
 PLAN_LABELS = {
     "resident": "Resident unlimited",
     "nr5": "5-meal plan",
     "nr10": "10-meal plan",
-    "nr21": "21-meal plan",
+    "nr21": NR21_NAME,
     "gp_regular": "GradPlus Regular",
     "gp_deluxe": "GradPlus Deluxe",
     "cash_guest": "No plan (pay guest rates)",
@@ -234,7 +238,7 @@ PLAN_COLORS = {
     "nr10": "#eda100", "resident": "#4a3aa7",  # fallbacks: neither wins anywhere at 2026-27 prices
 }
 SHORT_LABELS = {
-    "resident": "Resident plan", "nr5": "5-meal plan", "nr10": "10-meal plan", "nr21": "21-meal plan",
+    "resident": "Resident plan", "nr5": "5-meal plan", "nr10": "10-meal plan", "nr21": NR21_NAME,
     "gp_regular": "GradPlus Regular", "gp_deluxe": "GradPlus Deluxe", "cash_guest": "No plan", "cash_cafe": "No plan", "no_plan": "No plan",
 }
 X_LABEL = "Lunches, brunches & dinners eaten elsewhere per week"  # the meals_out input

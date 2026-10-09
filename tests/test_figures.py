@@ -18,12 +18,13 @@ from outside_food import (  # noqa: E402
     plot_extra_cost,
     plot_lead,
     plot_main_map,
+    plot_on_campus_extra,
     plot_spending,
 )
 from test_model import PRICES  # noqa: E402
 
-FIGURES = [plot_lead, plot_main_map, plot_spending, plot_extra_cost, plot_grad_spending, plot_swipe_cost,
-           plot_on_campus]
+FIGURES = [plot_lead, plot_main_map, plot_spending, plot_extra_cost, plot_swipe_cost, plot_on_campus_extra,
+           plot_grad_spending, plot_on_campus]
 
 
 @pytest.mark.parametrize("make", FIGURES, ids=lambda f: f.__name__)

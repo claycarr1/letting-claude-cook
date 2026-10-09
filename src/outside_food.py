@@ -14,7 +14,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from charts import habits_for_meals
 from cooking import cooking_cost_per_meal
-from decision_map import GROUPS, PLAN_COLORS, PLAN_LABELS, SHORT_LABELS, annual_costs, habits_to_patterns
+from decision_map import GROUPS, NR21_NAME, PLAN_COLORS, PLAN_LABELS, SHORT_LABELS, annual_costs, habits_to_patterns
 from model import MAX_PER_WEEK, Prices, load_term_weeks
 
 FULL_WEEK = sum(MAX_PER_WEEK.values())  # 21 meals a week, every week
@@ -90,7 +90,7 @@ SURFACE, INK, MUTED = "#fcfcfb", "#0b0b0b", "#52514e"
 PLAN_COLORS_NOW = {**PLAN_COLORS, "nr10": "#eda100"}
 LABEL_INK = {"nr10": "#9a6a00"}  # the yellow, darkened for text on the light surface
 PANEL_TITLES = {"no_plan": "No plan (eat out or cook)", "nr5": "5-meal plan", "nr10": "10-meal plan",
-                "nr21": "21-meal plan"}
+                "nr21": NR21_NAME}
 X_LABEL = "Average cost of a meal not eaten at HUDS (cooking and eating out mixed)"
 Y_LABEL = "Meals you'd eat at HUDS per week (if you had swipes)"
 SWIPES = {"nr5": 5, "nr10": 10}  # weekly swipes, marked on those plans' panels
@@ -140,6 +140,11 @@ def extra_cost_band(extra: float) -> int:
 def marker_price_text(name, price):
     """"$5.15" for a collected price, "~$13?" for a placeholder."""
     return f"~${price:.0f}?" if name in PLACEHOLDER_MARKERS else f"${price:.2f}"
+
+
+def _two_lines(label):
+    """'21-meal plan (= on-campus unlimited plan)' -> two lines, for direct labels."""
+    return label.replace(" (", "\n(", 1)
 
 
 def _marker_label(name, price):
@@ -223,8 +228,8 @@ def _draw_cheapest(ax, grid, xs, ys, fontsize=14):
         if len(pts) < 20:
             continue
         x, y = _label_point(pts, xs, ys)
-        ax.text(x, y, SHORT_LABELS[p], ha="center", va="center", fontsize=fontsize, color=INK, weight="bold",
-                path_effects=_halo())
+        ax.text(x, y, _two_lines(SHORT_LABELS[p]), ha="center", va="center", fontsize=fontsize, color=INK,
+                weight="bold", path_effects=_halo())
 
 
 def plot_main_map(prices: Prices):
@@ -244,7 +249,7 @@ def plot_main_map(prices: Prices):
     ax.set_xlabel(X_LABEL, color=MUTED, fontsize=style.LABEL)
     ax.set_ylabel(Y_LABEL, color=MUTED, fontsize=style.LABEL)
     shown = {p for row in grid for p in row}
-    handles = [Patch(facecolor=PLAN_COLORS_NOW[p], edgecolor=INK, linewidth=0.8, label=PLAN_LABELS[p])
+    handles = [Patch(facecolor=PLAN_COLORS_NOW[p], edgecolor=INK, linewidth=0.8, label=_two_lines(PLAN_LABELS[p]))
                for p in PLANS if p in shown]
     ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(1.02, 1), frameon=False, fontsize=style.TICK,
               labelcolor=INK, title="Cheapest option", title_fontsize=style.LABEL, alignment="left")
@@ -282,17 +287,18 @@ def plot_lead(prices: Prices):
         for p in PLANS:
             ax.plot(eaten, curves[name][p], color=PLAN_COLORS_NOW[p], linewidth=2.5, solid_capstyle="round")
         ends = [curves[name][p][-1] for p in PLANS]
-        for p, y in zip(PLANS, _spread_labels(ends, min_gap=0.055 * y_top)):
-            ax.text(FULL_WEEK + 0.5, y, SHORT_LABELS[p], va="center", fontsize=style.TICK, weight="bold",
+        for p, y in zip(PLANS, _spread_labels(ends, min_gap=0.09 * y_top)):
+            label = "21-meal plan\n(= on-campus plan)" if p == "nr21" else SHORT_LABELS[p]
+            ax.text(FULL_WEEK + 0.5, y, label, va="center", fontsize=style.TICK, weight="bold",
                     color=LABEL_INK.get(p, PLAN_COLORS_NOW[p]))
         ax.set_xlim(0, FULL_WEEK)
         ax.set_ylim(0, y_top)
         ax.set_xticks([0, 7, 14, 21])
         ax.tick_params(colors=MUTED, labelsize=style.TICK, length=0)
-        ax.set_xlabel(Y_LABEL, color=MUTED, fontsize=style.LABEL)
         tag = f"~${price:.0f}/meal?" if name in PLACEHOLDER_MARKERS else f"${price:.2f}/meal"
         ax.set_title(f"{titles[name]} ({tag})", color=INK, fontsize=style.PANEL_TITLE, loc="left", pad=10)
     axes[0].set_ylabel("Food spending per semester", color=MUTED, fontsize=style.LABEL)
+    fig.supxlabel(Y_LABEL, color=MUTED, fontsize=style.LABEL)  # one label under all three panels
     axes[0].yaxis.set_major_formatter(lambda v, _: f"${v:,.0f}")
     t21 = lowest_winning_price("nr21", prices)
     style.title(fig, f"A meal plan only saves money if a meal elsewhere would cost you more than about ${t21:.0f}")
@@ -396,29 +402,77 @@ def extra_cost_grid(prices: Prices, xs, ys):
     return {p: [[grid[p][j][i] - best[j][i] for i in range(len(xs))] for j in range(len(ys))] for p in PLANS}
 
 
-def plot_extra_cost(prices: Prices):
-    """Each option coloured by how much more it costs per semester than the cheapest option, with
-    the region where it is the cheapest outlined and labelled."""
+def _outline_cheapest(ax, bands, xs, ys):
+    """Outline and label the cells where this option is the cheapest (band 0)."""
     from matplotlib.collections import LineCollection
+
+    import style
+
+    mask = [[b == 0 for b in row] for row in bands]
+    ax.add_collection(LineCollection(_region_edges(mask, xs, ys), colors=INK, linewidths=1.6, capstyle="projecting"))
+    pts = [(x, y) for row, y in zip(mask, ys) for x, m in zip(xs, row) if m]
+    if len(pts) >= 20:
+        x, y = _label_point(pts, xs, ys)
+        ax.text(x, y, "Cheapest here", ha="center", va="center", fontsize=style.LABEL, color=INK,
+                weight="bold", path_effects=_halo())
+
+
+def _extra_cost_bands(prices: Prices, xs, ys):
+    extra = extra_cost_grid(prices, xs, ys)
+    return extra, {p: [[extra_cost_band(v) for v in row] for row in extra[p]] for p in PLANS}
+
+
+def _extra_cost_colorbar(fig, mesh, ax):
+    import style
+
+    cbar = fig.colorbar(mesh, ax=ax, location="right", shrink=0.8, aspect=30, pad=0.02)
+    cbar.set_label("How much more than the cheapest option, per semester", color=MUTED, fontsize=style.LABEL)
+    cbar.set_ticks(list(range(len(SEQ5))), labels=EXTRA_LABELS)
+    cbar.ax.tick_params(colors=MUTED, labelsize=style.TICK, length=0)
+    cbar.outline.set_visible(False)
+
+
+def plot_on_campus_extra(prices: Prices):
+    """On-campus students: the 21-meal panel of the extra-cost chart on its own. The required
+    unlimited plan costs the same as the 21-meal plan, so this is how much more the required plan
+    costs than the cheapest of the four options for the same eating habits."""
+    import matplotlib.pyplot as plt
     from matplotlib.colors import BoundaryNorm, ListedColormap
 
     import style
 
     xs, ys = _axes()
-    extra = extra_cost_grid(prices, xs, ys)
-    bands = {p: [[extra_cost_band(v) for v in row] for row in extra[p]] for p in PLANS}
+    _, bands = _extra_cost_bands(prices, xs, ys)
+    norm = BoundaryNorm([-0.5 + i for i in range(len(SEQ5) + 1)], len(SEQ5))
+    fig, ax = plt.subplots(figsize=(12, 7.5), facecolor=SURFACE, layout="constrained")
+    _frameless(ax)
+    mesh = ax.pcolormesh(_edges(xs), _edges(ys), bands["nr21"], cmap=ListedColormap(SEQ5), norm=norm, shading="flat")
+    _outline_cheapest(ax, bands["nr21"], xs, ys)
+    _price_axis(ax)
+    _eaten_axis(ax)
+    ax.set_xlabel(X_LABEL, color=MUTED, fontsize=style.LABEL)
+    ax.set_ylabel(Y_LABEL, color=MUTED, fontsize=style.LABEL)
+    ax.set_title("On-campus unlimited plan (= 21-meal plan) vs your best option", fontsize=style.PANEL_TITLE,
+                 color=INK, loc="left", pad=10)
+    _extra_cost_colorbar(fig, mesh, ax)
+    t21 = lowest_winning_price("nr21", prices)
+    style.title(fig, f"The required on-campus plan only pays off if you eat most meals at HUDS and meals elsewhere "
+                     f"would cost over ${t21:.0f}")
+    return fig
+
+
+def plot_extra_cost(prices: Prices):
+    """Each option coloured by how much more it costs per semester than the cheapest option, with
+    the region where it is the cheapest outlined and labelled."""
+    from matplotlib.colors import BoundaryNorm, ListedColormap
+
+    xs, ys = _axes()
+    extra, bands = _extra_cost_bands(prices, xs, ys)
     norm = BoundaryNorm([-0.5 + i for i in range(len(SEQ5) + 1)], len(SEQ5))
     worst = max(max(max(r) for r in extra[p]) for p in PLANS)
 
     def outline(ax, p, xs, ys):
-        mask = [[b == 0 for b in row] for row in bands[p]]
-        ax.add_collection(LineCollection(_region_edges(mask, xs, ys), colors=INK, linewidths=1.6,
-                                         capstyle="projecting"))
-        pts = [(x, y) for row, y in zip(mask, ys) for x, m in zip(xs, row) if m]
-        if len(pts) >= 20:
-            x, y = _label_point(pts, xs, ys)
-            ax.text(x, y, "Cheapest here", ha="center", va="center", fontsize=style.LABEL, color=INK,
-                    weight="bold", path_effects=_halo())
+        _outline_cheapest(ax, bands[p], xs, ys)
 
     return _spending_panels(f"Picking the wrong option can cost up to ${worst:,.0f} a semester",
                             bands, ListedColormap(SEQ5), norm, "How much more than the cheapest option, per semester",

@@ -11,10 +11,11 @@ Figures (figures/), in report order:
   decision_map_undergrad_offcampus.png/.csv  cheapest option by outside price x HUDS meals eaten
   spending_by_option.png                 spending per semester under each option (5 bands, contours)
   extra_cost_by_option.png               how much more each option costs than the cheapest
-  swipe_cost.png                         cost of one swipe on each off-campus plan vs the three outside prices
+  swipe_cost.png                         cost of one swipe on each plan vs the three outside prices
+  on_campus_extra_cost.png               on-campus students: the required plan (= 21-meal plan) vs their best option
   grad_cafe_spending.png                 graduate students: cheapest option by yearly cafe spending
-Appendix (figures/appendix/; on-campus undergrads are out of scope -- they have no choice of plan):
-  on_campus_cost_per_meal.png/.csv       the mandatory unlimited plan's cost per meal eaten
+Appendix (figures/appendix/):
+  on_campus_cost_per_meal.png/.csv       the required unlimited plan's cost per meal eaten
 The guest-rate results are archived in figures/appendix/guest_rate_model/ (git tag guest-rate-model).
 """
 
@@ -34,7 +35,14 @@ from charts import plot_grad_spending, plot_swipe_cost  # noqa: E402
 from model import load_prices  # noqa: E402
 from monte_carlo import draw_assumptions  # noqa: E402
 from on_campus import FULL_WEEK, plot_on_campus, resident_cost_per_meal  # noqa: E402
-from outside_food import plot_extra_cost, plot_lead, plot_main_map, plot_spending, write_grid_csv  # noqa: E402
+from outside_food import (  # noqa: E402
+    plot_extra_cost,
+    plot_lead,
+    plot_main_map,
+    plot_on_campus_extra,
+    plot_spending,
+    write_grid_csv,
+)
 
 OUT = ROOT / "figures"
 APPENDIX = OUT / "appendix"
@@ -55,6 +63,7 @@ def main():
     save(plot_spending(prices), OUT / "spending_by_option.png")
     save(plot_extra_cost(prices), OUT / "extra_cost_by_option.png")
     save(plot_swipe_cost(prices), OUT / "swipe_cost.png")
+    save(plot_on_campus_extra(prices), OUT / "on_campus_extra_cost.png")
     save(plot_grad_spending(prices), OUT / "grad_cafe_spending.png")
 
     save(plot_on_campus(prices, band_draws=draw_assumptions()), APPENDIX / "on_campus_cost_per_meal.png")

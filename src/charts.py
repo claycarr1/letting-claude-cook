@@ -147,7 +147,8 @@ def plot_swipe_cost(prices: Prices):
 
     swipes = cost_per_swipe(prices)
     plans = {5: "nr5", 10: "nr10", 21: "nr21"}
-    bars = [(f"{n}-meal plan\n(one swipe)", v, PLAN_COLORS[plans[n]]) for n, v in swipes.items()]
+    names = {5: "5-meal plan", 10: "10-meal plan", 21: "21-meal plan\n(= on-campus plan)"}
+    bars = [(f"{names[n]}\n(one swipe)", v, PLAN_COLORS[plans[n]]) for n, v in swipes.items()]
     neutral = "#898781"
     notes = {"Cooking": "(USDA moderate plan)"}
     bars += [(f"{name}\n{notes.get(name, '(placeholder)')}", price, neutral) for name, price in PRICE_MARKERS]
@@ -174,7 +175,7 @@ def plot_swipe_cost(prices: Prices):
     for (n, plan), y_label in zip(plans.items(), label_ys):
         ax.plot([xs[0] - 0.4, right], [swipes[n]] * 2, color=PLAN_COLORS[plan], linewidth=1.5,
                 linestyle=(0, (5, 3)), zorder=4)
-        ax.text(right + 0.1, y_label, f"{n}-meal swipe", va="center", fontsize=style.TICK, weight="bold",
+        ax.text(right + 0.1, y_label, "21-meal / on-campus\nswipe" if n == 21 else f"{n}-meal swipe", va="center", fontsize=style.TICK, weight="bold",
                 color=LABEL_INK.get(plan, PLAN_COLORS[plan]))
     ax.set_xlim(xs[0] - 0.5, right + 1.6)
     ax.set_xticks(xs, [b[0] for b in bars], fontsize=style.TICK, color=INK)
@@ -182,13 +183,13 @@ def plot_swipe_cost(prices: Prices):
     ax.yaxis.set_major_formatter(lambda v, _: f"${v:.0f}")
     ax.grid(axis="y", color=GRID_COLOR, linewidth=0.8)
     ax.set_ylim(0, max(b[1] for b in bars) * 1.15)
-    ax.text(1, -0.17, "Off-campus plans", transform=ax.get_xaxis_transform(), ha="center", va="top",
+    ax.text(1, -0.17, "Meal plans", transform=ax.get_xaxis_transform(), ha="center", va="top",
             fontsize=style.LABEL, color=MUTED)
     ax.text(sum(xs[3:]) / len(xs[3:]), -0.17, "Meals not eaten at HUDS (hatched = placeholder price)",
             transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=style.LABEL, color=MUTED)
     cook = dict(PRICE_MARKERS)["Cooking"]
     style.title(fig, f"Cooking (${cook:.2f} a meal) is cheaper than any swipe; a plan only pays off against "
-                     f"meals out that cost more than ${swipes[21]:.2f} (21-meal) or about "
+                     f"meals out that cost more than ${swipes[21]:.2f} (21-meal / on-campus) or about "
                      f"${(swipes[5] + swipes[10]) / 2:.0f} (5- and 10-meal)")
     return fig
 

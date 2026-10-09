@@ -6,19 +6,21 @@
 
 **Confirmed:** a student without a meal plan can't buy a HUDS dining-hall meal on their own at the guest rate; guest meals are only for guests of a student on a plan. (The user confirmed this; who confirmed it and when is still to be recorded. The saved HUDS FAQ is consistent with it: students on the meal plan "may host" guests and pay with cash or BoardPlus.) So "no plan" means eating out in Cambridge or cooking, and meals a plan's swipes don't cover are also eaten out or cooked. **Guest rates are now only a reference** for what HUDS charges for a meal. The results under the old guest-rate model are archived in `figures/appendix/guest_rate_model/` (git tag `guest-rate-model`) and summarised at the end of this report.
 
-**Scope.** This report covers **off-campus undergraduates**, who choose between no plan and the 5-, 10- and 21-meal plans, and graduate students (near the end). **On-campus undergraduates (research question 1) are out of scope**: they must take the unlimited plan, so there is no choice to model. Their cost-per-meal chart is kept in the appendix (`figures/appendix/on_campus_cost_per_meal.png`).
+**Scope.** This report covers **off-campus undergraduates**, who choose between no plan and the 5-, 10- and 21-meal plans; **on-campus undergraduates** (research question 1), who must take the unlimited plan; and graduate students (near the end).
+
+**The on-campus unlimited plan is the 21-meal plan in this model.** It costs $8,942 a year less $130 of BoardPlus = $8,812, exactly two terms of the 21-meal plan ($4,406 × 2), and with one swipe per meal period, 21 swipes a week cover every meal HUDS serves, the same as unlimited. `tests/test_on_campus.py` checks that the two cost the same for every eating pattern, outside price and first-week rule. (If BoardPlus goes unspent, the on-campus plan costs $130 a year more.) So the 21-meal plan is labelled "21-meal plan (= on-campus unlimited plan)" throughout.
 
 **Setup.** Everyone eats 21 meals a week; only where they eat changes. A meal not eaten at HUDS costs an *outside price*, a blend of cooking and eating out. It is a variable from $3 to $40 on the charts. Three reference prices are marked: **cooking, $5.15 a meal** (USDA moderate-cost food plan for a student cooking alone, adjusted to Northeast prices; see "Cooking cost" below), and **cheap takeout (~$13) and sit-down (~$30), which are still placeholders** (shown with "?") until about 30 Harvard Square/Central Square restaurant meals are collected. Off-campus undergraduate, 2 weekends away per term, 2026–27 HUDS prices and calendar. Meals eaten at HUDS are cut evenly across meal types. Spending per semester is half the academic year's spending.
 
 **First results:**
 
-- **A plan only pays off when a meal elsewhere costs more than one of its swipes:** $13.79 on the 21-meal plan and about $20 on the 5- and 10-meal plans (if every swipe is used). Below $14.33 a meal, having no plan is cheapest for everyone; across the whole $3–$40 range it is cheapest in 54% of the map.
+- **A plan only pays off when a meal elsewhere costs more than one of its swipes:** $13.79 on the 21-meal plan (= on-campus plan) and about $20 on the 5- and 10-meal plans (if every swipe is used). Below $14.33 a meal, having no plan is cheapest for everyone; across the whole $3–$40 range it is cheapest in 54% of the map.
 - **A student who cooks every meal not eaten at HUDS should have no plan**: cooking costs $5.15 a meal (range $4.01–$6.42 across USDA's plans; $4.29 with roommates), well below every swipe.
-- **The 21-meal plan** wins for heavy HUDS users: from $14.33 a meal for someone who eats every meal there, rising to about $20 for someone who eats 15 a week.
+- **The 21-meal plan (= on-campus plan)** wins for heavy HUDS users: from $14.33 a meal for someone who eats every meal there, rising to about $20 for someone who eats 15 a week.
 - **The 10-meal plan now wins somewhere**, unlike under guest rates: for students who eat about 9–14 HUDS meals a week, from $20.12 a meal at 14 HUDS meals a week ($20.79 at 12, $21.64 at 10).
 - **The 5-meal plan** wins for about 3–13 HUDS meals a week, from $20.22 a meal.
-- **At the marker prices:** at $5.15 (cooking) and ~$13 (cheap takeout, placeholder), no plan is cheapest for everyone. At ~$30 (sit-down, placeholder), the 21-meal plan is cheapest for 14+ HUDS meals a week, the 10-meal plan for 9–13, the 5-meal plan for 4–8, and no plan below that.
-- **Picking the wrong option** costs up to $7,894 a semester (the 21-meal plan for someone who eats nothing at HUDS when meals elsewhere cost $40), but little near the borders between options.
+- **At the marker prices:** at $5.15 (cooking) and ~$13 (cheap takeout, placeholder), no plan is cheapest for everyone. At ~$30 (sit-down, placeholder), the 21-meal plan (= on-campus plan) is cheapest for 14+ HUDS meals a week, the 10-meal plan for 9–13, the 5-meal plan for 4–8, and no plan below that.
+- **Picking the wrong option** costs up to $7,894 a semester (the 21-meal / on-campus plan for someone who eats nothing at HUDS when meals elsewhere cost $40), but little near the borders between options.
 - **Which meal you skip no longer matters** with a single outside price: every swipe saves the same amount. It will matter again if breakfast, lunch and dinner get separate outside prices from the restaurant data.
 
 ### Figures
@@ -29,9 +31,21 @@ All figures follow the same rules (`src/style.py`): text at least 12 pt, a plain
 2. **`figures/decision_map_undergrad_offcampus.png`** (+ `.csv`) — The decision map: the cheapest option by the average cost of a meal not eaten at HUDS (x-axis) and meals you'd eat at HUDS per week (y-axis). Find your price and your HUDS meals and read off the colour. The labels under the x-axis show where cooking, cheap takeout and sit-down meals fall.
 3. **`figures/spending_by_option.png`** — Total food spending per semester under each option (one panel each) in $1,000 bands on the same colour scale across panels, so nearby differences show up, with labelled contour lines every $2,000. With no plan, spending depends only on the outside price; with a plan, it also falls as you eat more HUDS meals, until the swipes run out (dashed line at 5 and 10 meals a week on the 5- and 10-meal panels; in weeks with a weekend away it comes slightly later, because fewer HUDS meals are eaten).
 4. **`figures/extra_cost_by_option.png`** — How much more each option costs per semester than the cheapest option for that student: $0 (the cheapest; outlined and labelled "Cheapest here"), under $250, $250–1,000, $1,000–4,000, $4,000+. Pale means the best option for that student, not that it's cheap; for total spending, see the spending chart. No plan gets darker going up not because it costs more, but because the plans get cheaper for students who'd eat more at HUDS. Dashed lines on the 5- and 10-meal panels mark where the swipes run out.
-5. **`figures/swipe_cost.png`** — What one swipe costs on each off-campus plan if every swipe is used ($20.22 on the 5-meal plan, $20.11 on the 10-meal, $13.79 on the 21-meal): the yearly plan price divided by the swipes available over 30.4 weeks. Dashed lines carry each swipe cost across the three outside prices: cooking ($5.15) and the placeholder cheap takeout (~$13) and sit-down (~$30) prices (hatched). A plan pays off only if a meal eaten out or cooked would cost more than its swipe.
+5. **`figures/swipe_cost.png`** — What one swipe costs on each plan if every swipe is used ($20.22 on the 5-meal plan, $20.11 on the 10-meal, $13.79 on the 21-meal / on-campus plan): the yearly plan price divided by the swipes available over 30.4 weeks. Dashed lines carry each swipe cost across the three outside prices: cooking ($5.15) and the placeholder cheap takeout (~$13) and sit-down (~$30) prices (hatched). A plan pays off only if a meal eaten out or cooked would cost more than its swipe.
 
-The graduate-student chart is in "Graduate students" near the end; the on-campus chart is in the appendix.
+The on-campus chart is in "On-campus students" below; the graduate-student chart is in "Graduate students" near the end.
+
+## On-campus students
+
+**`figures/on_campus_extra_cost.png`** — How much more the required on-campus plan (= the 21-meal plan) costs per semester than the cheapest of the four options for the same eating habits: $0 (it is the cheapest; outlined and labelled "Cheapest here"), under $250, $250–1,000, $1,000–4,000, $4,000+. Same axes and colour steps as the 21-meal panel of `extra_cost_by_option.png`. On-campus students can't actually choose another option; the chart shows what the requirement costs them compared with what they'd pay if they could (e.g. living off campus with the same habits).
+
+- **The required plan is the best option only for heavy HUDS users when meals elsewhere are expensive**: from $14.33 a meal for someone who eats all 21 meals at HUDS, and only for 13+ HUDS meals a week anywhere up to $40.
+- **At the cooking price ($5.15)** it costs $2,823 a semester more than cooking everything for someone who would eat all 21 meals at HUDS, and $3,350 more at 14 HUDS meals a week. (Most on-campus students can't cook every meal; see Limitations.)
+- **At cheap takeout (~$13, placeholder)** it costs $408 a semester more at 21 HUDS meals a week and $1,741 more at 14.
+- **At sit-down prices (~$30, placeholder)** it is the best option for 14+ HUDS meals a week; at 10 a week the 10-meal plan would be $1,346 a semester cheaper.
+
+The supporting chart `figures/appendix/on_campus_cost_per_meal.png` shows the plan's cost per meal eaten (below).
+
 
 ## Note: why there is no single map of every plan
 
@@ -40,7 +54,7 @@ An early version put every plan (resident unlimited, non-resident 5/10/21, GradP
 1. **Different groups can buy different plans.** Undergraduates can't buy GradPlus, and on-campus undergraduates must take the unlimited plan. A map that recommends GradPlus to an undergraduate is recommending something they can't buy.
 2. **Different plans are spent in different places.** GradPlus is spent at HUDS cafes, priced here at an estimated $12.50 a meal, while the undergraduate plans and guest rates are for dining-hall meals at $10.84–$21.40. GradPlus "wins" mostly because cafe meals are cheaper, not because the plan is a better deal.
 
-The results therefore use one map per group of students who face the same choice: off-campus undergraduates (the headline) and graduate students. On-campus undergraduates, who have no choice, are out of scope; their cost-per-meal chart is in the appendix. `src/decision_map.py` still supports the combined view (`group="all"`) for reference.
+The results therefore use one map per group of students who face the same choice: off-campus undergraduates (the headline) and graduate students. On-campus undergraduates, who have no choice, get the on-campus chart instead (the required plan vs their best option). `src/decision_map.py` still supports the combined view (`group="all"`) for reference.
 
 ## Assumptions
 
@@ -86,14 +100,15 @@ The cooking price is computed in `src/cooking.py` from `data/cooking_cost.csv` (
 - **The regional adjustment is for the Northeast, from 9 foods**, not for Cambridge or the full USDA basket. The optional local grocery basket (`data/hand_collected/grocery_basket.csv`) would check it.
 - **The USDA low-cost, moderate and liberal plans** are based on 2001–02 food choices updated with price indexes (USDA notes they are being re-evaluated); they describe a nutritious diet, not necessarily what students buy.
 - **Cheap takeout and sit-down prices are placeholders** until the restaurant sample is collected.
+- **Most on-campus students have limited kitchen access**, so the cooking price is less realistic for them: for on-campus students the takeout and sit-down prices are the more relevant comparisons.
 
 ## Graduate students
 
 **`figures/grad_cafe_spending.png`** — For graduate students, the cheapest option by how much they would spend at HUDS cafés in a year at menu prices: no plan below $933, GradPlus Regular from $933 to $1,604, GradPlus Deluxe above $1,604. GradPlus Regular costs $900 a year and Deluxe $1,350, both with 10% off café purchases and unspent money lost in May; spending is spread evenly over the year. The switch points don't depend on the estimated café meal price. Graduate students are unaffected by the guest-meal rule: HUDS cafés sell to anyone, so paying cash there is a real option.
 
-## Appendix: on-campus undergraduates (out of scope)
+## Appendix: on-campus cost per meal
 
-**`figures/appendix/on_campus_cost_per_meal.png`** (+ `.csv`) — What the mandatory unlimited plan costs per meal actually eaten, against meals eaten at HUDS per week. 2026–27 board fee $8,942 a year over 30.4 weeks of dining (fall 15.6, spring 14.9), with BoardPlus spent ($4,406 a term) or unspent ($4,471). Dotted lines are HUDS guest prices for reference; the plan beats the guest dinner price from 13.5 meals a week and the guest lunch price from 16.7. The shaded band is the 5–95% range over 2,000 Monte Carlo runs (weeks per term 14.5–16, BoardPlus spent or not). Below 4 meals a week the cost per meal runs off the top of the chart. Kept for reference only: on-campus students have no choice of plan.
+**`figures/appendix/on_campus_cost_per_meal.png`** (+ `.csv`) — What the mandatory unlimited plan costs per meal actually eaten, against meals eaten at HUDS per week. 2026–27 board fee $8,942 a year over 30.4 weeks of dining (fall 15.6, spring 14.9), with BoardPlus spent ($4,406 a term) or unspent ($4,471). Dotted lines are HUDS guest prices for reference; the plan beats the guest dinner price from 13.5 meals a week and the guest lunch price from 16.7. The shaded band is the 5–95% range over 2,000 Monte Carlo runs (weeks per term 14.5–16, BoardPlus spent or not). Below 4 meals a week the cost per meal runs off the top of the chart. Supports the "On-campus students" section.
 
 ## Archived results: guest-rate model (superseded 2026-10-08)
 
