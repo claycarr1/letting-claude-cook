@@ -59,6 +59,7 @@ def plot_on_campus(prices: Prices, term_weeks: Optional[Dict[str, float]] = None
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
 
+    import style
     from decision_map import INK, MUTED, SURFACE
 
     term_weeks = term_weeks or load_term_weeks()
@@ -67,16 +68,16 @@ def plot_on_campus(prices: Prices, term_weeks: Optional[Dict[str, float]] = None
     x_min, y_max = 4, 50
     xs = [x_min + i * (FULL_WEEK - x_min) / 200 for i in range(201)]
 
-    fig, ax = plt.subplots(figsize=(10, 6), facecolor=SURFACE, layout="constrained")
+    fig, ax = plt.subplots(figsize=(12, 7), facecolor=SURFACE, layout="constrained")
     ax.set_facecolor(SURFACE)
     if band_draws:
         lo, hi = band(prices, band_draws, xs)
         ax.fill_between(xs, lo, hi, color=plan_color, alpha=0.15, linewidth=0, zorder=1,
                         label=f"Range in 90% of {len(band_draws):,} runs (weeks/term 14.5-16, BoardPlus spent or not)")
-    for count, style, label in [(True, "-", "Unlimited plan, BoardPlus spent (\\$4,406/term)"),
+    for count, dash, label in [(True, "-", "Unlimited plan, BoardPlus spent (\\$4,406/term)"),
                                 (False, (0, (4, 3)), "Unlimited plan, BoardPlus unspent (\\$4,471/term)")]:
         ys = [resident_cost_per_meal(x, prices, term_weeks=term_weeks, count_boardplus=count) for x in xs]
-        ax.plot(xs, ys, color=plan_color, linewidth=2 if count else 1.5, linestyle=style,
+        ax.plot(xs, ys, color=plan_color, linewidth=2 if count else 1.5, linestyle=dash,
                 alpha=1 if count else 0.7, label=label, zorder=3)
 
     halo = [patheffects.withStroke(linewidth=3, foreground=SURFACE)]
@@ -85,37 +86,33 @@ def plot_on_campus(prices: Prices, term_weeks: Optional[Dict[str, float]] = None
             ("Guest breakfast (Houses)", prices.guest_rates["breakfast_houses"])]
     for name, price in refs:
         ax.axhline(price, color=MUTED, linewidth=1, linestyle=(0, (1, 2)), zorder=2)
-        ax.text(x_min + 0.15, price + 0.6, f"{name} \\${price:.2f}", color=MUTED, fontsize=9, path_effects=halo)
+        ax.text(x_min + 0.15, price + 0.6, f"{name} \\${price:.2f}", color=MUTED, fontsize=style.TICK, path_effects=halo)
 
     for name, price in refs[:2]:
         m = break_even_meals_per_week(price, prices, term_weeks)
         if m <= FULL_WEEK:
             ax.plot(m, price, "o", markersize=8, color=plan_color, markeredgecolor=SURFACE, markeredgewidth=2, zorder=4)
             ax.annotate(f"{m:.1f} meals/wk", (m, price), xytext=(8, 8), textcoords="offset points",
-                        fontsize=9, color=INK, path_effects=halo)
+                        fontsize=style.TICK, color=INK, path_effects=halo)
     full = resident_cost_per_meal(FULL_WEEK, prices, term_weeks=term_weeks)
     ax.plot(FULL_WEEK, full, "o", markersize=8, color=plan_color, markeredgecolor=SURFACE, markeredgewidth=2, zorder=4)
     ax.annotate(f"Every meal: \\${full:.2f}", (FULL_WEEK, full), xytext=(-8, -16), textcoords="offset points",
-                ha="right", fontsize=9, color=INK, path_effects=halo)
+                ha="right", fontsize=style.TICK, color=INK, path_effects=halo)
 
     ax.set_xlim(x_min, FULL_WEEK + 0.3)
     ax.set_ylim(0, y_max)
     ax.set_xticks(range(x_min, FULL_WEEK + 1))
-    ax.set_xlabel("Meals eaten at HUDS per week", color=MUTED)
-    ax.set_ylabel("Cost per meal eaten (USD)", color=MUTED)
+    ax.set_xlabel("Meals eaten at HUDS per week", color=MUTED, fontsize=style.LABEL)
+    ax.set_ylabel("Cost per meal eaten (USD)", color=MUTED, fontsize=style.LABEL)
     ax.yaxis.set_major_formatter(lambda v, _: f"${v:.0f}")
     ax.grid(axis="y", color=grid_color, linewidth=0.8)
-    ax.tick_params(colors=MUTED, length=0)
+    ax.tick_params(colors=MUTED, length=0, labelsize=style.TICK)
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
     for side in ("left", "bottom"):
         ax.spines[side].set_color(axis_color)
-    ax.legend(loc="upper right", frameon=False, fontsize=9, labelcolor=INK)
-    weeks = sum(term_weeks.values())
-    fig.suptitle("On-campus undergraduates: what the unlimited plan costs per meal you actually eat",
-                 color=INK, fontsize=12, x=0.01, ha="left")
-    ax.set_title(f"2026-27 board fee \\${prices.resident_board_fee_per_year:,.0f}/yr over {weeks:.1f} weeks of dining "
-                 f"(fall {term_weeks['fall']:.1f}, spring {term_weeks['spring']:.1f}). "
-                 f"Below {x_min} meals/wk the cost per meal runs off the top of the chart.",
-                 color=MUTED, fontsize=9, loc="left")
+    ax.legend(loc="upper right", frameon=False, fontsize=style.TICK, labelcolor=INK)
+    dinner_m = break_even_meals_per_week(prices.guest_rates["dinner"], prices, term_weeks)
+    style.title(fig, f"On campus, the unlimited plan costs less per meal than a HUDS guest dinner only if you eat "
+                     f"{dinner_m:.1f}+ meals a week")
     return fig

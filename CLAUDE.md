@@ -2,7 +2,7 @@
 
 This file is the source of truth for the project. Read it fully before making changes. Ask the user before deviating from any decision below. This REPLACES an earlier brief about a restaurant recommender app; that project is cancelled.
 
-**Start here in a new session:** read "Current status" and "Next steps" at the end. Last updated 2026-10-08.
+**Start here in a new session:** read "Current status" and "Next steps" at the end. Last updated 2026-10-08 (figure cleanup).
 
 ## Assignment context
 
@@ -51,7 +51,7 @@ Pages to fetch:
 1. **Data collection:** fetch and parse the HUDS pages and the official board fee; record values with source URLs and fetch dates in `data/`. **Done.** Cambridge restaurant and cooking prices are a separate step (in progress).
 2. **Deterministic model:** cost per meal eaten for each plan as a function of meals eaten per week by meal type, weeks on campus, and forfeiture rules. Pure, unit-tested functions. **Done**, including the 2026-10-08 change to outside prices.
 3. **Monte Carlo simulation (secondary):** show how sensitive the decision map is to uncertain assumptions — not the headline result. It must vary **weeks per term from about 14.5 to 16** (fall and spring drawn separately), full vs partial first-week swipes, and on the current model the outside price and cooking share. Yes/no assumptions are 50/50 coin flips. **The existing Monte Carlo is on the superseded guest-rate model and must be rebuilt.**
-4. **Decision map (main output):** see "Decision map" below. Current version: cheapest option by outside price × HUDS meals missed per week.
+4. **Decision map (main output):** see "Decision map" below. Current version: cheapest option by outside price × meals eaten at HUDS per week, led by a simpler three-price line chart.
 5. **Validation:** compare model prediction to the user's actual swipe history (or survey data). Report error.
 6. **Write-up:** short report with figures. Every figure reproducible from a script.
 
@@ -59,10 +59,13 @@ Pages to fetch:
 
 The main output is a **decision map**: a plot where a student locates themselves and reads off which plan is cheapest.
 
-**Current version (2026-10-08):**
-- **Main map** (`figures/decision_map_undergrad_offcampus.png`): cheapest option for an off-campus undergraduate (no plan, 5-, 10-, 21-meal plan) by **cost of a meal not eaten at HUDS** (x-axis, a blend of cooking and eating out, about $3–$40) and **HUDS meals missed per week** (y-axis, 0–21). 2 weekends away per term.
-- **Instructor's chart:** one panel per option (no plan, 5-, 10-, 21-meal plan), x = cost of a meal not eaten at HUDS, y = HUDS meals missed per week, colour = **total food spending per semester on the same colour scale across panels**, plus the "cheapest option" panel. **The user picked Drafts B and C** (`figures/drafts/draft_B_binned.png`: $1,000 bands with contour lines; `draft_C_extra_cost.png`: each option's extra cost over the cheapest) **and wants both cleaned up.** Draft A (continuous colour) was not chosen.
-- **Markers** on the x-axis for typical cooking cost, cheap takeout and a sit-down meal. Currently **placeholders** (~$5, ~$13, ~$30, shown with "?"; `PRICE_MARKERS` in `src/outside_food.py`) until real prices are collected.
+**Current version (2026-10-08), in report order** (all in `src/outside_food.py`):
+1. **Lead chart** (`figures/spending_at_three_prices.png`, `plot_lead`): three side-by-side line charts "If you mostly cook (~$5/meal)", "If you get cheap takeout (~$13/meal)", "If you eat at sit-down places (~$30/meal)"; x = meals eaten at HUDS per week (0–21), y = food spending per semester, same y-scale on all three; one line per option, labelled at the line's end (no legend).
+2. **Decision map** (`figures/decision_map_undergrad_offcampus.png`, `plot_main_map`): cheapest option for an off-campus undergraduate (no plan, 5-, 10-, 21-meal plan) by **cost of a meal not eaten at HUDS** (x-axis, about $3–$40) and **meals eaten at HUDS per week** (y-axis, 0–21). 2 weekends away per term.
+3. **Spending by option** (`figures/spending_by_option.png`, `plot_spending`; was Draft B): 2×2 grid, one panel per option, colour = total food spending per semester in 5 bands (under $4k, $4–7k, $7–10k, $10–13k, $13k+), same scale across panels, contour lines at band edges, colourbar on the right.
+4. **Extra cost by option** (`figures/extra_cost_by_option.png`, `plot_extra_cost`; was Draft C): 2×2 grid, colour = how much more than the cheapest option per semester in 5 bands ($0 (cheapest), under $250, $250–1,000, $1,000–4,000, $4,000+); each panel outlines and labels its "Cheapest here" region.
+- Draft A was dropped and `figures/drafts/` removed (in git history).
+- **Markers:** "Cooking", "Cheap takeout", "Sit-down" are small labels on the x-axis (no dashed lines across the plot). Currently **placeholders** (~$5, ~$13, ~$30, shown with "?"; `PRICE_MARKERS` in `src/outside_food.py`) until real prices are collected.
 - **Grad students:** `figures/grad_cafe_spending.png` — cheapest option (no plan / GradPlus Regular / Deluxe) by yearly café spending, switch points $933 and $1,604 (independent of the estimated café price).
 - **On-campus undergrads** have no choice, so they get `figures/on_campus_cost_per_meal.png` instead of a map: cost per meal eaten vs meals per week, guest prices as reference lines, BoardPlus spent and unspent, Monte Carlo range shaded.
 - **No all-plans map** mixing student groups (GradPlus "wins" most of it only because café meals are cheaper and undergrads can't buy it); explained in a note in `report.md`.
@@ -104,7 +107,7 @@ Python 3.9+ (the machine has 3.9.6). Dependencies in a project virtualenv `.venv
 - Meals eaten elsewhere can be taken "spread" over lunch/brunch/dinner, "dinners first" or "lunches first" (`meals_out_from`).
 
 **Guest meals are not an option (decided 2026-10-08)**
-- **Rule:** a student without a meal plan can't buy a guest meal unless accompanied by a Harvard student on a plan. Source: the user's own knowledge of HUDS rules; **to be confirmed with HUDS.** The saved FAQ is consistent but not explicit: it describes guest meals as something "students on the meal plan may host … and may pay for them with cash or BoardPlus"; the only case of affiliates paying the guest rate themselves is summer dining at Winthrop and Adams.
+- **Rule (confirmed):** a student without a meal plan can't buy a dining-hall meal on their own at the guest rate, only as the guest of a Harvard student on a plan. **Confirmed by the user on 2026-10-08; who they asked and the date of that confirmation are still to be recorded.** The saved FAQ is consistent but not explicit: it describes guest meals as something "students on the meal plan may host … and may pay for them with cash or BoardPlus"; the only case of affiliates paying the guest rate themselves is summer dining at Winthrop and Adams.
 - **"No plan" means eating out in Cambridge or cooking.** Meals not covered by a plan's swipes are also eaten out or cooked, not bought at guest rates.
 - **Everyone eats 21 meals a week;** missed HUDS meals are eaten elsewhere and paid for. Only where they eat changes.
 - **One "outside price" per meal**, a blend of cooking and eating out, is the x-axis (from about $3). It is a variable until real prices are collected.
@@ -122,21 +125,24 @@ Python 3.9+ (the machine has 3.9.6). Dependencies in a project virtualenv `.venv
 - Keep figures simple: few panels in the main text, full versions in `figures/appendix/`; each figure has a clear title, labelled axes and a one-line caption in `report.md`.
 - Fixed colours by option: no plan blue, 5-meal aqua, 10-meal yellow, 21-meal orange (plus direct labels and region borders, because colour alone isn't enough).
 - Toss-up squares on stability maps stay pale.
+- **Figure rules (2026-10-08, every current figure; `src/style.py`, checked by `tests/test_figures.py`):** text at least 12 pt, panel titles 16 pt, main title 18 pt and a plain-language takeaway sentence (computed from the data where it quotes numbers); no footnote in the image — setup details and caveats go in the figure's caption in `report.md`. About 5 colour steps on banded charts. The y-axis on off-campus charts is **meals eaten at HUDS per week** (not missed).
+- The 10-meal yellow and 21-meal orange fail the normal-vision colour-difference check (ΔE 13.7 < 15); kept because the colours are fixed, with direct labels and borders as the secondary cue. Ask the user before changing them.
+- The archived guest-rate figures in `figures/appendix/guest_rate_model/` were **not** restyled; they stay frozen as a record of the superseded model.
 - `meal_type_savings.png` (archived) notes it compares only the 5-meal plan with no plan.
 
-## Current status (2026-10-08)
+## Current status (2026-10-08, after figure cleanup)
 
 - **Step 1 done:** `scripts/fetch_prices.py` → `data/huds_prices.csv` (every value with source URL, fetch date and the quoted page text).
-- **Model done and tested:** `src/model.py` (plans, outside prices, term calendar), `src/decision_map.py` (habit patterns, yearly costs, `outside_price` and `no_plan`), `src/outside_food.py` (current model: full yearly food bill, cheapest option, drafts A/B/C, main map), `src/on_campus.py`, `src/charts.py`, `src/monte_carlo.py` (guest-rate legacy). **79 tests pass** (`.venv/bin/python -m pytest`).
-- **Current figures** (`scripts/make_figures.py`): main decision map + CSV, drafts A/B/C, grad café spending, swipe cost, on-campus cost per meal + CSV.
-- **First results on the current model** (outside price still a variable; in `report.md`): no plan is cheapest for everyone below $14.33 a meal and in 54% of the chart; the 21-meal plan wins for heavy HUDS users from $14.33 (every meal) to ~$20 (15 meals/week); the **10-meal plan now wins** for ~8–14 HUDS meals/week above ~$21; the 5-meal plan for ~3–12 above ~$20.22.
-- **`report.md`:** has a "Current model" section plus the archived guest-rate sections (marked superseded). Not final.
+- **Model done and tested:** `src/model.py` (plans, outside prices, term calendar), `src/decision_map.py` (habit patterns, yearly costs, `outside_price` and `no_plan`), `src/outside_food.py` (current model: full yearly food bill, cheapest option, drafts A/B/C, main map), `src/on_campus.py`, `src/charts.py`, `src/monte_carlo.py` (guest-rate legacy). **88 tests pass** (`.venv/bin/python -m pytest`).
+- **Current figures** (`scripts/make_figures.py`): lead chart, decision map + CSV, spending by option, extra cost by option, swipe cost, grad café spending, on-campus cost per meal + CSV — all cleaned up under the figure rules; captions in `report.md`.
+- **First results on the current model** (outside price still a variable; in `report.md`): no plan is cheapest for everyone below $14.33 a meal and in 54% of the chart; the 21-meal plan wins for heavy HUDS users from $14.33 (every meal) to ~$20 (15 meals/week); the **10-meal plan now wins** for ~9–14 HUDS meals/week from $20.12; the 5-meal plan for ~3–13 from $20.22. Picking the wrong option costs up to $7,894 a semester.
+- **`report.md`:** has a "Current model" section (results + numbered figure captions) plus the archived guest-rate sections (marked superseded). Not final.
 - **Templates ready but empty:** `data/hand_collected/restaurant_meals.csv`, `grocery_basket.csv`.
 - **Not done yet:** real prices, cooking cost data, Monte Carlo on the new model, validation, README, final report.
 
 ## Next steps (in order)
 
-1. **Clean up Drafts B and C** (the user's picks). Ask the user what specifically to clean up if not already said. Likely candidates: repeated marker labels on every panel, the empty sixth cell and colourbar placement in Draft B, contour labels overlapping, Draft C's colour scale and labels. Then decide whether B and C become main figures.
+1. ~~Clean up Drafts B and C~~ — done 2026-10-08 (see "Decision map").
 2. **Fetch the cooking cost per meal** (USDA food plans adjusted to Boston with BLS data) into `data/` with sources and fetch dates.
 3. **User collects ~30 restaurant meals** in `data/hand_collected/restaurant_meals.csv`; then compute outside prices (tax + tip rule above), replace the placeholder markers with real values, and consider separate breakfast/lunch/dinner outside prices.
 4. **Rebuild the Monte Carlo on the current model** (outside price, cooking share, weeks per term 14.5–16, first-week swipes) and its stability/assumption figures.
@@ -145,9 +151,8 @@ Python 3.9+ (the machine has 3.9.6). Dependencies in a project virtualenv `.venv
 
 ## Open questions for the user
 
-- Confirm with HUDS that a student without a plan can't buy guest meals on their own.
+- Who confirmed the guest-meal rule, and when? (Record it in "Guest meals are not an option" and `report.md`.)
 - Can the user export their own swipe history?
-- What exactly should be cleaned up in Drafts B and C?
 
 ## How to run
 

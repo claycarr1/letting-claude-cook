@@ -5,13 +5,15 @@ Usage:
   .venv/bin/python scripts/make_figures.py
 
 Current model (from 2026-10-08): no guest meals; meals not eaten at HUDS are eaten out or cooked
-at an outside price (see src/outside_food.py). Main figures (figures/):
-  decision_map_undergrad_offcampus.png/.csv  cheapest option by outside price x HUDS meals missed
+at an outside price (see src/outside_food.py). Figure rules (text size, titles) are in src/style.py.
+Figures (figures/), in report order:
+  spending_at_three_prices.png           lead chart: spending per semester vs HUDS meals, at 3 outside prices
+  decision_map_undergrad_offcampus.png/.csv  cheapest option by outside price x HUDS meals eaten
+  spending_by_option.png                 spending per semester under each option (5 bands, contours)
+  extra_cost_by_option.png               how much more each option costs than the cheapest
   grad_cafe_spending.png                 graduate students: cheapest option by yearly cafe spending
   swipe_cost.png                         cost of one swipe on each off-campus plan (guest prices as reference)
   on_campus_cost_per_meal.png/.csv       the mandatory unlimited plan's cost per meal eaten
-Drafts of the spending chart (figures/drafts/):
-  draft_A_continuous.png, draft_B_binned.png, draft_C_extra_cost.png
 The guest-rate results are archived in figures/appendix/guest_rate_model/ (git tag guest-rate-model).
 """
 
@@ -31,27 +33,25 @@ from charts import plot_grad_spending, plot_swipe_cost  # noqa: E402
 from model import load_prices  # noqa: E402
 from monte_carlo import draw_assumptions  # noqa: E402
 from on_campus import FULL_WEEK, plot_on_campus, resident_cost_per_meal  # noqa: E402
-from outside_food import draft_binned, draft_continuous, draft_extra_cost, plot_main_map, write_grid_csv  # noqa: E402
+from outside_food import plot_extra_cost, plot_lead, plot_main_map, plot_spending, write_grid_csv  # noqa: E402
 
 OUT = ROOT / "figures"
-DRAFTS = OUT / "drafts"
 
 
 def main():
     argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter).parse_args()
     prices = load_prices()
     OUT.mkdir(exist_ok=True)
-    DRAFTS.mkdir(exist_ok=True)
 
     def save(fig, path):
         fig.savefig(path, dpi=150, facecolor=fig.get_facecolor())
         print(f"wrote {path.relative_to(ROOT)}")
 
+    save(plot_lead(prices), OUT / "spending_at_three_prices.png")
     save(plot_main_map(prices), OUT / "decision_map_undergrad_offcampus.png")
     write_grid_csv(prices, OUT / "decision_map_undergrad_offcampus.csv")
-    save(draft_continuous(prices), DRAFTS / "draft_A_continuous.png")
-    save(draft_binned(prices), DRAFTS / "draft_B_binned.png")
-    save(draft_extra_cost(prices), DRAFTS / "draft_C_extra_cost.png")
+    save(plot_spending(prices), OUT / "spending_by_option.png")
+    save(plot_extra_cost(prices), OUT / "extra_cost_by_option.png")
     save(plot_grad_spending(prices), OUT / "grad_cafe_spending.png")
     save(plot_swipe_cost(prices), OUT / "swipe_cost.png")
 

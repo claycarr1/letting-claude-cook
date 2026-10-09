@@ -24,7 +24,7 @@ PRICE_RANGE = (3.0, 40.0)
 
 # PLACEHOLDERS -- not data. Positions for the chart markers until the hand-collected restaurant
 # prices and the USDA/BLS cooking cost are in; replace them with the collected values.
-PRICE_MARKERS = [("Cooking", 5.0), ("Cheap takeout", 13.0), ("Sit-down meal", 30.0)]
+PRICE_MARKERS = [("Cooking", 5.0), ("Cheap takeout", 13.0), ("Sit-down", 30.0)]
 MARKERS_ARE_PLACEHOLDERS = True
 
 
@@ -64,35 +64,45 @@ def cheapest(missed: float, outside_price: float, prices: Prices, **kw) -> Tuple
     return ranked[0], c[ranked[1]] - c[ranked[0]]
 
 
-def spending_grid(prices: Prices, xs: Sequence[float], ys: Sequence[float], weekends_away: int = WEEKENDS_AWAY):
-    """{plan: rows[y][x] of semester spending} for every outside price x and meals missed y."""
-    out = {p: [] for p in PLANS}
-    for y in ys:
-        rows = {p: [] for p in PLANS}
-        for x in xs:
-            c = per_semester(year_food_spending(y, x, prices, weekends_away))
-            for p in PLANS:
-                rows[p].append(c[p])
-        for p in PLANS:
-            out[p].append(rows[p])
-    return out
+def lowest_winning_price(plan: str, prices: Prices, lo: float = PRICE_RANGE[0], hi: float = 60.0) -> Optional[float]:
+    """Lowest outside price (to the cent) at which `plan` is the cheapest option for some whole
+    number of HUDS meals a week, or None if it never wins up to `hi`."""
+    def wins(price):
+        return any(cheapest(FULL_WEEK - eaten, price, prices)[0] == plan for eaten in range(FULL_WEEK + 1))
+
+    if not wins(hi):
+        return None
+    if wins(lo):
+        return lo
+    while hi - lo > 0.005:
+        mid = (lo + hi) / 2
+        lo, hi = (lo, mid) if wins(mid) else (mid, hi)
+    return round(hi, 2)
 
 
-# ---------------------------------------------------------------------------- drafts of the chart
+# ---------------------------------------------------------------------------- figures
+# Rules for every figure are in src/style.py: text >= 12 pt, takeaway title, no footnote (the
+# setup goes in the caption in report.md). The y-axis is meals eaten at HUDS (21 - missed).
 
 SURFACE, INK, MUTED = "#fcfcfb", "#0b0b0b", "#52514e"
-SEQ = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]  # blue ramp, light to dark
 PLAN_COLORS_NOW = {**PLAN_COLORS, "nr10": "#eda100"}
+LABEL_INK = {"nr10": "#9a6a00"}  # the yellow, darkened for text on the light surface
 PANEL_TITLES = {"no_plan": "No plan (eat out or cook)", "nr5": "5-meal plan", "nr10": "10-meal plan",
                 "nr21": "21-meal plan"}
-X_LABEL = "Cost of a meal not eaten at HUDS (blend of cooking and eating out)"
-Y_LABEL = "HUDS meals missed per week"
+X_LABEL = "Cost of a meal not eaten at HUDS"
+Y_LABEL = "Meals eaten at HUDS per week"
+
+# Five steps of one blue, light to dark (spending chart and extra-cost chart).
+SEQ5 = ["#cde2fb", "#8fbcf1", "#3987e5", "#1d5aa8", "#0d366b"]
+SPENDING_BOUNDS = [0, 4000, 7000, 10000, 13000, 18000]  # per semester; the top band is "$13,000+"
+EXTRA_BOUNDS = [0, 0.005, 250, 1000, 4000, float("inf")]  # per semester
+EXTRA_LABELS = ["$0 (cheapest)", "Under $250", "$250-1,000", "$1,000-4,000", "$4,000+"]
 
 
-def _axes(n=150, ny=22):
+def _axes(n=150):
     xs = [PRICE_RANGE[0] + i * (PRICE_RANGE[1] - PRICE_RANGE[0]) / (n - 1) for i in range(n)]
-    ys = list(range(ny))
-    return xs, ys
+    eaten = list(range(FULL_WEEK + 1))
+    return xs, eaten
 
 
 def _edges(vals):
@@ -100,236 +110,298 @@ def _edges(vals):
     return [v - step / 2 for v in vals] + [vals[-1] + step / 2]
 
 
-def _markers(ax, labels=True, ink=INK):
-    from matplotlib import patheffects
+def spending_grid(prices: Prices, xs: Sequence[float], eaten: Sequence[float], weekends_away: int = WEEKENDS_AWAY):
+    """{plan: rows[y][x] of semester spending} for every outside price x and HUDS meals eaten y."""
+    out = {p: [] for p in PLANS}
+    for y in eaten:
+        rows = {p: [] for p in PLANS}
+        for x in xs:
+            c = per_semester(year_food_spending(FULL_WEEK - y, x, prices, weekends_away))
+            for p in PLANS:
+                rows[p].append(c[p])
+        for p in PLANS:
+            out[p].append(rows[p])
+    return out
 
-    for name, price in PRICE_MARKERS:
-        ax.axvline(price, color=ink, linewidth=1, linestyle=(0, (4, 3)), alpha=0.8, zorder=4)
-        if labels:
-            tag = f"{name}\n~${price:.0f}" + ("?" if MARKERS_ARE_PLACEHOLDERS else "")
-            ax.text(price, FULL_WEEK + 0.9, tag, ha="center", va="bottom", fontsize=8, color=ink,
-                    path_effects=[patheffects.withStroke(linewidth=2.5, foreground=SURFACE)])
+
+def cheapest_grid(prices: Prices, xs, eaten, weekends_away: int = WEEKENDS_AWAY):
+    return [[cheapest(FULL_WEEK - y, x, prices, weekends_away=weekends_away)[0] for x in xs] for y in eaten]
 
 
-def _style(ax, show_y=True):
-    ax.set_facecolor(SURFACE)
+def extra_cost_band(extra: float) -> int:
+    """Index into EXTRA_LABELS for an option costing `extra` more per semester than the cheapest."""
+    if extra < 0:
+        raise ValueError(f"negative extra cost {extra}")
+    return next(i for i, hi in enumerate(EXTRA_BOUNDS[1:]) if extra < hi)
+
+
+def _marker_label(name, price):
+    return f"{name}\n~${price:.0f}" + ("?" if MARKERS_ARE_PLACEHOLDERS else "")
+
+
+def _price_axis(ax, markers=True):
+    """x-axis: dollar ticks, with the cooking / takeout / sit-down markers as small labels on a
+    second line under them (no lines across the plot)."""
+    import style
+
     ax.set_xlim(*PRICE_RANGE)
+    ax.set_xticks([10, 20, 30, 40], ["$10", "$20", "$30", "$40"])
+    ax.tick_params(axis="x", which="major", colors=MUTED, labelsize=style.TICK, length=0, pad=4)
+    if markers:
+        ax.xaxis.remove_overlapping_locs = False  # keep the $30 marker, which sits on a dollar tick
+        ax.set_xticks([p for _, p in PRICE_MARKERS], [_marker_label(n, p) for n, p in PRICE_MARKERS], minor=True)
+        ax.tick_params(axis="x", which="minor", colors=INK, labelcolor=MUTED, labelsize=style.TICK, length=5,
+                       width=1.2, direction="out", pad=22)
+        for t in ax.get_xticklabels(minor=True):
+            t.set_fontstyle("italic")
+
+
+def _eaten_axis(ax, show_labels=True):
+    import style
+
     ax.set_ylim(-0.5, FULL_WEEK + 0.5)
-    ax.set_xticks([5, 10, 20, 30, 40], ["$5", "$10", "$20", "$30", "$40"])
     ax.set_yticks([0, 7, 14, 21])
-    if not show_y:
+    if not show_labels:
         ax.set_yticklabels([])
-    ax.tick_params(colors=MUTED, labelsize=8, length=0)
+    ax.tick_params(axis="y", colors=MUTED, labelsize=style.TICK, length=0)
+
+
+def _frameless(ax):
+    ax.set_facecolor(SURFACE)
     for side in ax.spines.values():
         side.set_visible(False)
 
 
-def cheapest_grid(prices: Prices, xs, ys, weekends_away: int = WEEKENDS_AWAY):
-    return [[cheapest(y, x, prices, weekends_away=weekends_away)[0] for x in xs] for y in ys]
+def _region_edges(mask, xs, ys):
+    """Line segments along cell edges between True and False cells of mask[y][x] (and around the
+    grid edge where True)."""
+    ex, ey = _edges(xs), _edges(ys)
+    segs = []
+    for j in range(len(ys)):
+        for i in range(len(xs)):
+            if i + 1 < len(xs) and mask[j][i] != mask[j][i + 1]:
+                segs.append([(ex[i + 1], ey[j]), (ex[i + 1], ey[j + 1])])
+            if j + 1 < len(ys) and mask[j][i] != mask[j + 1][i]:
+                segs.append([(ex[i], ey[j + 1]), (ex[i + 1], ey[j + 1])])
+    return segs
 
 
-def _draw_cheapest(ax, grid, xs, ys, fontsize=9):
+def _label_point(pts, xs, ys):
+    """The point of `pts` nearest their centre (scaled to the axes), for a region label."""
+    cx = sum(x for x, _ in pts) / len(pts)
+    cy = sum(y for _, y in pts) / len(pts)
+    return min(pts, key=lambda q: ((q[0] - cx) / (xs[-1] - xs[0])) ** 2 + ((q[1] - cy) / (ys[-1] - ys[0])) ** 2)
+
+
+def _halo(width=3):
     from matplotlib import patheffects
+
+    return [patheffects.withStroke(linewidth=width, foreground=SURFACE)]
+
+
+def _draw_cheapest(ax, grid, xs, ys, fontsize=14):
+    from matplotlib.collections import LineCollection
     from matplotlib.colors import ListedColormap
 
     codes = [[PLANS.index(p) for p in row] for row in grid]
     ax.pcolormesh(_edges(xs), _edges(ys), codes, cmap=ListedColormap([PLAN_COLORS_NOW[p] for p in PLANS]),
                   vmin=-0.5, vmax=len(PLANS) - 0.5, shading="flat")
-    # Dark lines along cell edges where the cheapest option changes (orange next to yellow needs
-    # more than colour).
-    from matplotlib.collections import LineCollection
-
-    ex, ey = _edges(xs), _edges(ys)
+    # Dark lines where the cheapest option changes (orange next to yellow needs more than colour).
     segs = []
-    for j, row in enumerate(grid):
-        for i in range(len(xs)):
-            if i + 1 < len(xs) and row[i] != row[i + 1]:
-                segs.append([(ex[i + 1], ey[j]), (ex[i + 1], ey[j + 1])])
-            if j + 1 < len(ys) and row[i] != grid[j + 1][i]:
-                segs.append([(ex[i], ey[j + 1]), (ex[i + 1], ey[j + 1])])
-    ax.add_collection(LineCollection(segs, colors=INK, linewidths=1.2, capstyle="projecting"))
+    for p in PLANS:
+        segs += _region_edges([[q == p for q in row] for row in grid], xs, ys)
+    ax.add_collection(LineCollection(segs, colors=INK, linewidths=1.4, capstyle="projecting"))
     for p in PLANS:
         pts = [(x, y) for row, y in zip(grid, ys) for x, q in zip(xs, row) if q == p]
         if len(pts) < 20:
             continue
-        cx = sum(x for x, _ in pts) / len(pts)
-        cy = sum(y for _, y in pts) / len(pts)
-        x, y = min(pts, key=lambda q: ((q[0] - cx) / (xs[-1] - xs[0])) ** 2 + ((q[1] - cy) / (ys[-1] - ys[0])) ** 2)
-        ax.text(x, y, SHORT_LABELS[p], ha="center", va="center", fontsize=fontsize, color=INK,
-                path_effects=[patheffects.withStroke(linewidth=3, foreground=SURFACE)])
-
-
-SHORT_X_LABEL = "Cost of a meal not eaten at HUDS"
-
-
-def _panel_xlabels(fig):
-    """Short x-axis label under every panel on the bottom row (figure-level labels collide with the footer)."""
-    for ax in fig.axes:
-        if ax.get_label() == "<colorbar>" or not ax.axison:
-            continue
-        ss = ax.get_subplotspec()
-        if ss is not None and ss.is_last_row():
-            ax.set_xlabel(SHORT_X_LABEL, color=MUTED, fontsize=9)
-
-
-def _seq_cmap(n_bins: Optional[int] = None):
-    from matplotlib.colors import LinearSegmentedColormap
-
-    return LinearSegmentedColormap.from_list("spend", SEQ, N=n_bins or 256)
-
-
-def _footer(fig):
-    note = ("Off-campus undergraduate, 21 meals a week, 2 weekends away per term, 2026-27 HUDS prices; "
-            "spending per semester = half the academic year. x-axis: cost of a meal not eaten at HUDS, a "
-            "blend of cooking and eating out.")
-    if MARKERS_ARE_PLACEHOLDERS:
-        note += " Marker prices are placeholders until real prices are collected."
-    import textwrap
-
-    # Wrap to the figure width (about 15 characters per inch at 8 pt) and reserve a strip of that
-    # height at the bottom, in inches, so the note can't collide with the x-axis label.
-    width_in, height_in = fig.get_size_inches()
-    lines = textwrap.wrap(note, int(width_in * 15))
-    strip = (0.08 + 0.16 * len(lines)) / height_in
-    fig.get_layout_engine().set(rect=(0, strip, 1, 1 - strip))  # (left, bottom, width, height)
-    fig.text(0.01, 0.01 / height_in * 4, "\n".join(lines), fontsize=8, color=MUTED, ha="left", va="bottom")
-
-
-def draft_continuous(prices: Prices):
-    """Draft A: one row, four spending panels on a shared continuous scale, plus the cheapest-option panel."""
-    import matplotlib.pyplot as plt
-
-    xs, ys = _axes()
-    grid = spending_grid(prices, xs, ys)
-    vmax = max(max(max(r) for r in grid[p]) for p in PLANS)
-    fig, axes = plt.subplots(1, 5, figsize=(20, 5.2), facecolor=SURFACE, layout="constrained")
-    for i, (ax, p) in enumerate(zip(axes, PLANS)):
-        mesh = ax.pcolormesh(_edges(xs), _edges(ys), grid[p], cmap=_seq_cmap(), vmin=0, vmax=vmax, shading="flat")
-        _style(ax, show_y=i == 0)
-        _markers(ax)
-        ax.set_title(PANEL_TITLES[p], fontsize=10, color=INK, loc="left", pad=28)
-    cbar = fig.colorbar(mesh, ax=axes[:4], location="bottom", shrink=0.6, pad=0.02, aspect=50)
-    cbar.set_label("Total food spending per semester", color=MUTED, fontsize=9)
-    cbar.ax.xaxis.set_major_formatter(lambda v, _: f"${v:,.0f}")
-    cbar.ax.tick_params(colors=MUTED, labelsize=8)
-    _draw_cheapest(axes[4], cheapest_grid(prices, xs, ys), xs, ys)
-    _style(axes[4], show_y=False)
-    _markers(axes[4])
-    axes[4].set_title("Cheapest option", fontsize=10, color=INK, loc="left", pad=28, weight="bold")
-    axes[0].set_ylabel(Y_LABEL, color=MUTED)
-    _panel_xlabels(fig)
-    fig.suptitle("Draft A: food spending per semester under each option, and which is cheapest",
-                 color=INK, fontsize=13, x=0.01, ha="left")
-    _footer(fig)
-    return fig
-
-
-def draft_binned(prices: Prices, step: float = 1000):
-    """Draft B: 2 x 3 layout, spending in $1,000 bands with labelled contour lines."""
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import BoundaryNorm
-
-    xs, ys = _axes()
-    grid = spending_grid(prices, xs, ys)
-    vmax = max(max(max(r) for r in grid[p]) for p in PLANS)
-    levels = [step * i for i in range(int(vmax // step) + 2)]
-    norm = BoundaryNorm(levels, 256)
-    fig, axes = plt.subplots(2, 3, figsize=(15, 9), facecolor=SURFACE, layout="constrained")
-    flat = axes.ravel()
-    for i, (ax, p) in enumerate(zip(flat, PLANS)):
-        mesh = ax.pcolormesh(_edges(xs), _edges(ys), grid[p], cmap=_seq_cmap(), norm=norm, shading="flat")
-        cs = ax.contour(xs, ys, grid[p], levels=levels[1::2], colors=SURFACE, linewidths=0.8)
-        ax.clabel(cs, fmt=lambda v: f"${v / 1000:.0f}k", fontsize=7, colors=SURFACE)
-        _style(ax, show_y=i % 3 == 0)
-        _markers(ax)
-        ax.set_title(PANEL_TITLES[p], fontsize=10, color=INK, loc="left", pad=28)
-    _draw_cheapest(flat[4], cheapest_grid(prices, xs, ys), xs, ys)
-    _style(flat[4], show_y=False)
-    _markers(flat[4])
-    flat[4].set_title("Cheapest option", fontsize=10, color=INK, loc="left", pad=28, weight="bold")
-    flat[5].axis("off")
-    cbar = fig.colorbar(mesh, ax=flat[5], location="left", fraction=0.08, pad=0.0)
-    cbar.set_label("Total food spending per semester ($1,000 bands)", color=MUTED, fontsize=9)
-    cbar.ax.yaxis.set_major_formatter(lambda v, _: f"${v:,.0f}")
-    cbar.ax.tick_params(colors=MUTED, labelsize=8)
-    for ax in axes[:, 0]:
-        ax.set_ylabel(Y_LABEL, color=MUTED)
-    _panel_xlabels(fig)
-    fig.suptitle("Draft B: same data in $1,000 bands with contour lines", color=INK, fontsize=13, x=0.01, ha="left")
-    _footer(fig)
-    return fig
-
-
-def draft_extra_cost(prices: Prices):
-    """Draft C: each option coloured by how much more it costs per semester than the cheapest option
-    (0 = this option is the cheapest there), shared scale, plus the cheapest-option panel."""
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import BoundaryNorm
-
-    xs, ys = _axes()
-    grid = spending_grid(prices, xs, ys)
-    best = [[min(grid[p][j][i] for p in PLANS) for i in range(len(xs))] for j in range(len(ys))]
-    extra = {p: [[grid[p][j][i] - best[j][i] for i in range(len(xs))] for j in range(len(ys))] for p in PLANS}
-    bounds = [0, 1, 100, 250, 500, 1000, 2000, 4000, 8000]
-    norm = BoundaryNorm(bounds, 256, extend="max")
-    fig, axes = plt.subplots(1, 5, figsize=(20, 5.2), facecolor=SURFACE, layout="constrained")
-    for i, (ax, p) in enumerate(zip(axes, PLANS)):
-        mesh = ax.pcolormesh(_edges(xs), _edges(ys), extra[p], cmap=_seq_cmap(), norm=norm, shading="flat")
-        _style(ax, show_y=i == 0)
-        _markers(ax)
-        ax.set_title(PANEL_TITLES[p], fontsize=10, color=INK, loc="left", pad=28)
-    cbar = fig.colorbar(mesh, ax=axes[:4], location="bottom", shrink=0.6, pad=0.02, aspect=50)
-    cbar.set_label("How much more than the cheapest option, per semester (lightest = this is the cheapest)",
-                   color=MUTED, fontsize=9)
-    cbar.ax.xaxis.set_major_formatter(lambda v, _: f"${v:,.0f}")
-    cbar.ax.tick_params(colors=MUTED, labelsize=8)
-    _draw_cheapest(axes[4], cheapest_grid(prices, xs, ys), xs, ys)
-    _style(axes[4], show_y=False)
-    _markers(axes[4])
-    axes[4].set_title("Cheapest option", fontsize=10, color=INK, loc="left", pad=28, weight="bold")
-    axes[0].set_ylabel(Y_LABEL, color=MUTED)
-    _panel_xlabels(fig)
-    fig.suptitle("Draft C: how much each option costs above the cheapest one", color=INK, fontsize=13,
-                 x=0.01, ha="left")
-    _footer(fig)
-    return fig
+        x, y = _label_point(pts, xs, ys)
+        ax.text(x, y, SHORT_LABELS[p], ha="center", va="center", fontsize=fontsize, color=INK, weight="bold",
+                path_effects=_halo())
 
 
 def plot_main_map(prices: Prices):
-    """The new main decision map: the cheapest-option panel on its own."""
+    """The decision map: the cheapest option by outside price and HUDS meals eaten per week."""
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch
 
+    import style
+
     xs, ys = _axes(n=220)
     grid = cheapest_grid(prices, xs, ys)
-    fig, ax = plt.subplots(figsize=(10, 6.2), facecolor=SURFACE, layout="constrained")
-    _draw_cheapest(ax, grid, xs, ys, fontsize=11)
-    _style(ax)
-    _markers(ax)
-    ax.set_xlabel(X_LABEL, color=MUTED)
-    ax.set_ylabel(Y_LABEL, color=MUTED)
+    fig, ax = plt.subplots(figsize=(12, 7.5), facecolor=SURFACE, layout="constrained")
+    _frameless(ax)
+    _draw_cheapest(ax, grid, xs, ys, fontsize=15)
+    _price_axis(ax)
+    _eaten_axis(ax)
+    ax.set_xlabel(X_LABEL, color=MUTED, fontsize=style.LABEL)
+    ax.set_ylabel(Y_LABEL, color=MUTED, fontsize=style.LABEL)
     shown = {p for row in grid for p in row}
-    handles = [Patch(facecolor=PLAN_COLORS_NOW[p], label=PLAN_LABELS[p]) for p in PLANS if p in shown]
-    ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(1.02, 1), frameon=False, fontsize=9,
-              labelcolor=INK, title="Cheapest option", title_fontsize=10, alignment="left")
-    fig.suptitle("Decision map: cheapest option for an off-campus undergraduate", color=INK, fontsize=12,
-                 x=0.01, ha="left")
-    ax.set_title("Everyone eats 21 meals a week; meals not eaten at HUDS are eaten out or cooked at the price "
-                 "on the x-axis.", color=MUTED, fontsize=9, loc="left", pad=30)
-    _footer(fig)
+    handles = [Patch(facecolor=PLAN_COLORS_NOW[p], edgecolor=INK, linewidth=0.8, label=PLAN_LABELS[p])
+               for p in PLANS if p in shown]
+    ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(1.02, 1), frameon=False, fontsize=style.TICK,
+              labelcolor=INK, title="Cheapest option", title_fontsize=style.LABEL, alignment="left")
+    t21 = lowest_winning_price("nr21", prices)
+    style.title(fig, f"No plan is cheapest unless a meal elsewhere costs over ${t21:.0f};\n"
+                     "above that, the more you eat at HUDS, the bigger the plan that wins")
     return fig
+
+
+def plot_lead(prices: Prices):
+    """Lead chart: one panel per marker price, food spending per semester against HUDS meals eaten
+    per week, one line per option, labelled at the line's end. Same y-scale on every panel."""
+    import matplotlib.pyplot as plt
+
+    from charts import _spread_labels
+    import style
+
+    titles = {"Cooking": "If you mostly cook", "Cheap takeout": "If you get cheap takeout",
+              "Sit-down": "If you eat at sit-down places"}
+    eaten = [i * 0.25 for i in range(4 * FULL_WEEK + 1)]
+    curves = {}
+    for name, price in PRICE_MARKERS:
+        rows = [per_semester(year_food_spending(FULL_WEEK - e, price, prices)) for e in eaten]
+        curves[name] = {p: [r[p] for r in rows] for p in PLANS}
+    y_max = max(max(max(c) for c in by_plan.values()) for by_plan in curves.values())
+    y_top = 1000 * (int(y_max // 1000) + 1)
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6.8), facecolor=SURFACE, layout="constrained", sharey=True)
+    for ax, (name, price) in zip(axes, PRICE_MARKERS):
+        _frameless(ax)
+        ax.spines["bottom"].set_visible(True)
+        ax.spines["bottom"].set_color("#c3c2b7")
+        ax.grid(axis="y", color="#e1e0d9", linewidth=0.8)
+        ax.set_axisbelow(True)
+        for p in PLANS:
+            ax.plot(eaten, curves[name][p], color=PLAN_COLORS_NOW[p], linewidth=2.5, solid_capstyle="round")
+        ends = [curves[name][p][-1] for p in PLANS]
+        for p, y in zip(PLANS, _spread_labels(ends, min_gap=0.055 * y_top)):
+            ax.text(FULL_WEEK + 0.5, y, SHORT_LABELS[p], va="center", fontsize=style.TICK, weight="bold",
+                    color=LABEL_INK.get(p, PLAN_COLORS_NOW[p]))
+        ax.set_xlim(0, FULL_WEEK)
+        ax.set_ylim(0, y_top)
+        ax.set_xticks([0, 7, 14, 21])
+        ax.tick_params(colors=MUTED, labelsize=style.TICK, length=0)
+        ax.set_xlabel(Y_LABEL, color=MUTED, fontsize=style.LABEL)
+        tag = f"~${price:.0f}/meal" + ("?" if MARKERS_ARE_PLACEHOLDERS else "")
+        ax.set_title(f"{titles[name]} ({tag})", color=INK, fontsize=style.PANEL_TITLE, loc="left", pad=10)
+    axes[0].set_ylabel("Food spending per semester", color=MUTED, fontsize=style.LABEL)
+    axes[0].yaxis.set_major_formatter(lambda v, _: f"${v:,.0f}")
+    t21 = lowest_winning_price("nr21", prices)
+    style.title(fig, f"A meal plan only saves money if a meal elsewhere would cost you more than about ${t21:.0f}")
+    return fig
+
+
+def _spending_panels(fig_title: str, panel_data, cmap, norm, colorbar_label, colorbar_ticks=None,
+                     colorbar_ticklabels=None, decorate=None):
+    """2 x 2 grid, one panel per option, shared colour scale and a colourbar on the right."""
+    import matplotlib.pyplot as plt
+
+    import style
+
+    xs, ys = _axes()
+    fig, axes = plt.subplots(2, 2, figsize=(15, 11.5), facecolor=SURFACE, layout="constrained")
+    for i, (ax, p) in enumerate(zip(axes.ravel(), PLANS)):
+        _frameless(ax)
+        mesh = ax.pcolormesh(_edges(xs), _edges(ys), panel_data[p], cmap=cmap, norm=norm, shading="flat")
+        if decorate:
+            decorate(ax, p, xs, ys)
+        _price_axis(ax)
+        _eaten_axis(ax, show_labels=i % 2 == 0)
+        ax.set_title(PANEL_TITLES[p], fontsize=style.PANEL_TITLE, color=INK, loc="left", pad=10)
+        if i % 2 == 0:
+            ax.set_ylabel(Y_LABEL, color=MUTED, fontsize=style.LABEL)
+        if i >= 2:
+            ax.set_xlabel(X_LABEL, color=MUTED, fontsize=style.LABEL)
+    cbar = fig.colorbar(mesh, ax=axes, location="right", shrink=0.7, aspect=30, pad=0.02)
+    cbar.set_label(colorbar_label, color=MUTED, fontsize=style.LABEL)
+    if colorbar_ticks is not None:
+        cbar.set_ticks(colorbar_ticks, labels=colorbar_ticklabels)
+    else:
+        cbar.ax.yaxis.set_major_formatter(lambda v, _: f"${v:,.0f}")
+    cbar.ax.tick_params(colors=MUTED, labelsize=style.TICK, length=0)
+    cbar.outline.set_visible(False)
+    style.title(fig, fig_title)
+    return fig
+
+
+def plot_spending(prices: Prices):
+    """Food spending per semester under each option, in five bands, with the band edges drawn as
+    labelled contour lines."""
+    from matplotlib.colors import BoundaryNorm, ListedColormap
+
+    import style
+
+    xs, ys = _axes()
+    grid = spending_grid(prices, xs, ys)
+    vmax = max(max(max(r) for r in grid[p]) for p in PLANS)
+    bounds = SPENDING_BOUNDS[:-1] + [max(SPENDING_BOUNDS[-1], vmax)]
+    norm = BoundaryNorm(bounds, len(SEQ5))
+    levels = SPENDING_BOUNDS[1:-1]
+
+    def contours(ax, p, xs, ys):
+        cs = ax.contour(xs, ys, grid[p], levels=levels, colors=SURFACE, linewidths=1.2)
+        # Labels where each line crosses mid-chart, away from the axes and the panel edges.
+        ax.clabel(cs, fmt=lambda v: f"${v / 1000:.0f}k", fontsize=style.TICK, colors=INK, inline=True,
+                  inline_spacing=6)
+        for t in cs.labelTexts:
+            t.set_path_effects(_halo())
+
+    labels = ["Under $4,000", "$4,000-7,000", "$7,000-10,000", "$10,000-13,000", "$13,000+"]
+    centres = [(a + b) / 2 for a, b in zip(bounds, bounds[1:])]
+    return _spending_panels("A plan lowers your food bill only if you use its swipes and meals elsewhere are pricey",
+                            grid, ListedColormap(SEQ5), norm, "Total food spending per semester",
+                            colorbar_ticks=centres, colorbar_ticklabels=labels, decorate=contours)
+
+
+def extra_cost_grid(prices: Prices, xs, ys):
+    """{plan: rows[y][x] of how much more per semester than the cheapest option}."""
+    grid = spending_grid(prices, xs, ys)
+    best = [[min(grid[p][j][i] for p in PLANS) for i in range(len(xs))] for j in range(len(ys))]
+    return {p: [[grid[p][j][i] - best[j][i] for i in range(len(xs))] for j in range(len(ys))] for p in PLANS}
+
+
+def plot_extra_cost(prices: Prices):
+    """Each option coloured by how much more it costs per semester than the cheapest option, with
+    the region where it is the cheapest outlined and labelled."""
+    from matplotlib.collections import LineCollection
+    from matplotlib.colors import BoundaryNorm, ListedColormap
+
+    import style
+
+    xs, ys = _axes()
+    extra = extra_cost_grid(prices, xs, ys)
+    bands = {p: [[extra_cost_band(v) for v in row] for row in extra[p]] for p in PLANS}
+    norm = BoundaryNorm([-0.5 + i for i in range(len(SEQ5) + 1)], len(SEQ5))
+    worst = max(max(max(r) for r in extra[p]) for p in PLANS)
+
+    def outline(ax, p, xs, ys):
+        mask = [[b == 0 for b in row] for row in bands[p]]
+        ax.add_collection(LineCollection(_region_edges(mask, xs, ys), colors=INK, linewidths=1.6,
+                                         capstyle="projecting"))
+        pts = [(x, y) for row, y in zip(mask, ys) for x, m in zip(xs, row) if m]
+        if len(pts) >= 20:
+            x, y = _label_point(pts, xs, ys)
+            ax.text(x, y, "Cheapest here", ha="center", va="center", fontsize=style.LABEL, color=INK,
+                    weight="bold", path_effects=_halo())
+
+    return _spending_panels(f"Picking the wrong option can cost up to ${worst:,.0f} a semester",
+                            bands, ListedColormap(SEQ5), norm, "How much more than the cheapest option, per semester",
+                            colorbar_ticks=list(range(len(SEQ5))), colorbar_ticklabels=EXTRA_LABELS,
+                            decorate=outline)
 
 
 def write_grid_csv(prices: Prices, path, n=75):
     import csv
 
-    xs, ys = _axes(n=n)
+    xs, _ = _axes(n=n)
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["meals_missed_per_week", "outside_price"] + [f"semester_{p}" for p in PLANS]
-                   + ["cheapest", "runner_up_extra_per_year"])
-        for y in ys:
+        w.writerow(["hud_meals_per_week", "meals_missed_per_week", "outside_price"]
+                   + [f"semester_{p}" for p in PLANS] + ["cheapest", "runner_up_extra_per_year"])
+        for eaten in range(FULL_WEEK + 1):
+            y = FULL_WEEK - eaten
             for x in xs:
                 c = per_semester(year_food_spending(y, x, prices))
                 best, gap = cheapest(y, x, prices)
-                w.writerow([y, round(x, 2)] + [round(c[p], 2) for p in PLANS] + [best, round(gap, 2)])
+                w.writerow([eaten, y, round(x, 2)] + [round(c[p], 2) for p in PLANS] + [best, round(gap, 2)])

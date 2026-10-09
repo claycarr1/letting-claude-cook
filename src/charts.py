@@ -153,36 +153,36 @@ def plot_swipe_cost(prices: Prices):
     from matplotlib import patheffects
 
     halo = [patheffects.withStroke(linewidth=3, foreground=SURFACE)]
-    fig, ax = plt.subplots(figsize=(11, 6), facecolor=SURFACE, layout="constrained")
+    import style
+
+    fig, ax = plt.subplots(figsize=(14, 7), facecolor=SURFACE, layout="constrained")
     _style(ax)
+    ax.tick_params(labelsize=style.TICK)
     xs = [i + (0.6 if i >= 3 else 0) for i in range(len(bars))]  # gap between plans and guest prices
     right = xs[-1] + 0.5
     for x, (label, value, color) in zip(xs, bars):
         ax.bar(x, value, width=0.62, color=color, zorder=3)
-        ax.text(x, value + 0.4, f"${value:.2f}", ha="center", va="bottom", fontsize=9.5, color=INK,
+        ax.text(x, value + 0.4, f"${value:.2f}", ha="center", va="bottom", fontsize=style.TICK, color=INK,
                 path_effects=halo, zorder=5)
     # Dashed line at each plan's swipe cost, running across the guest prices for comparison.
-    label_ys = _spread_labels([swipes[n] for n in plans], min_gap=0.9)
+    label_ys = _spread_labels([swipes[n] for n in plans], min_gap=1.2)
     for (n, plan), y_label in zip(plans.items(), label_ys):
         ax.plot([xs[0] - 0.4, right], [swipes[n]] * 2, color=PLAN_COLORS[plan], linewidth=1.5,
                 linestyle=(0, (5, 3)), zorder=4)
-        ax.text(right + 0.1, y_label, f"{n}-meal swipe", va="center", fontsize=9, weight="bold",
+        ax.text(right + 0.1, y_label, f"{n}-meal swipe", va="center", fontsize=style.TICK, weight="bold",
                 color=LABEL_INK.get(plan, PLAN_COLORS[plan]))
-    ax.set_xlim(xs[0] - 0.5, right + 1.4)
-    ax.set_xticks(xs, [b[0] for b in bars], fontsize=9, color=INK)
-    ax.set_ylabel("Cost of one meal (USD)", color=MUTED)
+    ax.set_xlim(xs[0] - 0.5, right + 1.6)
+    ax.set_xticks(xs, [b[0] for b in bars], fontsize=style.TICK, color=INK)
+    ax.set_ylabel("Cost of one meal (USD)", color=MUTED, fontsize=style.LABEL)
     ax.yaxis.set_major_formatter(lambda v, _: f"${v:.0f}")
     ax.grid(axis="y", color=GRID_COLOR, linewidth=0.8)
     ax.set_ylim(0, max(b[1] for b in bars) * 1.15)
-    ax.text(1, -0.2, "Off-campus plans", transform=ax.get_xaxis_transform(), ha="center", fontsize=9, color=MUTED)
-    ax.text(5.5, -0.2, "HUDS guest prices, incl. 7% tax (reference only)", transform=ax.get_xaxis_transform(),
-            ha="center", fontsize=9, color=MUTED)
-    weeks = sum(load_term_weeks().values())
-    fig.suptitle("What one swipe costs on each off-campus plan", color=INK, fontsize=12, x=0.01, ha="left")
-    ax.set_title(f"Swipe cost = yearly plan price / swipes available over {weeks:.1f} weeks, if every swipe is used.\n"
-                 "A plan pays off only if a meal eaten out or cooked would cost more than its swipe. "
-                 "HUDS guest prices are what HUDS charges for a meal, shown for reference.",
-                 color=MUTED, fontsize=9, loc="left")
+    ax.text(1, -0.17, "Off-campus plans", transform=ax.get_xaxis_transform(), ha="center", va="top",
+            fontsize=style.LABEL, color=MUTED)
+    ax.text(5.5, -0.17, "HUDS guest prices, incl. 7% tax (reference only)", transform=ax.get_xaxis_transform(),
+            ha="center", va="top", fontsize=style.LABEL, color=MUTED)
+    style.title(fig, f"A 21-meal swipe costs ${swipes[21]:.2f}; a 5- or 10-meal swipe costs about "
+                     f"${(swipes[5] + swipes[10]) / 2:.0f}")
     return fig
 
 
@@ -348,28 +348,30 @@ def plot_grad_spending(prices: Prices, max_spending: float = 2500):
     options = [points[0][1]] + [above for _, _, above in points] if points else ["cash_cafe"]
     names = {"cash_cafe": "No plan", "gp_regular": "GradPlus Regular", "gp_deluxe": "GradPlus Deluxe"}
 
-    fig, ax = plt.subplots(figsize=(10, 3.2), facecolor=SURFACE, layout="constrained")
+    import style
+
+    fig, ax = plt.subplots(figsize=(13, 4.2), facecolor=SURFACE, layout="constrained")
     ax.set_facecolor(SURFACE)
     halo = [patheffects.withStroke(linewidth=3, foreground=SURFACE)]
     for (lo, hi), opt in zip(zip(edges, edges[1:]), options):
         ax.barh(0, hi - lo, left=lo, height=0.6, color=PLAN_COLORS[opt], edgecolor=SURFACE, linewidth=2)
-        ax.text((lo + hi) / 2, 0, names[opt], ha="center", va="center", fontsize=11, color=INK, path_effects=halo)
+        ax.text((lo + hi) / 2, 0, names[opt], ha="center", va="center", fontsize=style.LABEL + 1, color=INK,
+                weight="bold", path_effects=halo)
     for s, below, above in points:
         ax.plot([s, s], [-0.42, 0.42], color=INK, linewidth=1.5)
-        ax.text(s, 0.48, f"${s:,.0f}", ha="center", va="bottom", fontsize=10, color=INK)
+        ax.text(s, 0.48, f"${s:,.0f}", ha="center", va="bottom", fontsize=style.LABEL, color=INK)
     ax.set_xlim(0, max_spending)
     ax.set_ylim(-0.5, 0.75)
     ax.set_yticks([])
     ax.xaxis.set_major_formatter(lambda v, _: f"${v:,.0f}")
-    ax.tick_params(colors=MUTED, length=0)
+    ax.tick_params(colors=MUTED, length=0, labelsize=style.TICK)
     for side in ("top", "right", "left"):
         ax.spines[side].set_visible(False)
     ax.spines["bottom"].set_color(AXIS_COLOR)
-    ax.set_xlabel("What you would spend at HUDS cafés in a year, at menu prices", color=MUTED)
-    fig.suptitle("Graduate students: which option is cheapest for your café spending", color=INK, fontsize=12,
-                 x=0.01, ha="left")
-    ax.set_title("GradPlus Regular costs \\$900/yr and Deluxe \\$1,350/yr, both with 10% off and unspent money lost "
-                 "in May. Spending spread evenly over the year.", color=MUTED, fontsize=9, loc="left")
+    ax.set_xlabel("What you would spend at HUDS cafés in a year, at menu prices", color=MUTED, fontsize=style.LABEL)
+    if points:
+        style.title(fig, f"Graduate students: GradPlus only pays off if you would spend over ${points[0][0]:,.0f} "
+                         "a year at HUDS cafés")
     return fig
 
 
