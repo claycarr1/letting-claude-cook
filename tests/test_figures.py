@@ -35,8 +35,10 @@ def test_figure_rules(make):
         small = [(t.get_text(), t.get_fontsize()) for t in texts if t.get_fontsize() < style.MIN_TEXT]
         assert not small
         assert fig._suptitle is not None and fig._suptitle.get_fontsize() >= 16
-        # No footnote: the only text placed on the figure itself (not in an axes) is the title.
-        assert [t for t in fig.texts if t.get_visible() and t.get_text().strip()] == [fig._suptitle]
+        # No footnote: the only text placed on the figure itself (not in an axes) is the title and
+        # a shared x-axis label.
+        allowed = {id(fig._suptitle), id(fig._supxlabel)}
+        assert all(id(t) in allowed for t in fig.texts if t.get_visible() and t.get_text().strip())
     finally:
         plt.close(fig)
 

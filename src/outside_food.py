@@ -13,6 +13,7 @@ Every cost comes from src/model.py via src/decision_map.annual_costs.
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from charts import habits_for_meals
+from cooking import cooking_cost_per_meal
 from decision_map import GROUPS, PLAN_COLORS, PLAN_LABELS, SHORT_LABELS, annual_costs, habits_to_patterns
 from model import MAX_PER_WEEK, Prices, load_term_weeks
 
@@ -22,10 +23,11 @@ PLANS = GROUPS[GROUP]  # no_plan, nr5, nr10, nr21
 WEEKENDS_AWAY = 2
 PRICE_RANGE = (3.0, 40.0)
 
-# PLACEHOLDERS -- not data. Positions for the chart markers until the hand-collected restaurant
-# prices and the USDA/BLS cooking cost are in; replace them with the collected values.
-PRICE_MARKERS = [("Cooking", 5.0), ("Cheap takeout", 13.0), ("Sit-down", 30.0)]
-MARKERS_ARE_PLACEHOLDERS = True
+# Chart markers. Cooking is the USDA moderate-cost plan for a student cooking alone, adjusted to
+# Northeast prices (src/cooking.py). Cheap takeout and sit-down are PLACEHOLDERS -- not data --
+# until the hand-collected restaurant prices are in; replace them with the collected values.
+PRICE_MARKERS = [("Cooking", cooking_cost_per_meal()), ("Cheap takeout", 13.0), ("Sit-down", 30.0)]
+PLACEHOLDER_MARKERS = {"Cheap takeout", "Sit-down"}
 
 
 def hud_meals_per_year(missed: float, weekends_away: int = WEEKENDS_AWAY,
@@ -89,12 +91,12 @@ PLAN_COLORS_NOW = {**PLAN_COLORS, "nr10": "#eda100"}
 LABEL_INK = {"nr10": "#9a6a00"}  # the yellow, darkened for text on the light surface
 PANEL_TITLES = {"no_plan": "No plan (eat out or cook)", "nr5": "5-meal plan", "nr10": "10-meal plan",
                 "nr21": "21-meal plan"}
-X_LABEL = "Cost of a meal not eaten at HUDS"
-Y_LABEL = "Meals eaten at HUDS per week"
+X_LABEL = "Average cost of a meal not eaten at HUDS (cooking and eating out mixed)"
+Y_LABEL = "Meals you'd eat at HUDS per week (if you had swipes)"
+SWIPES = {"nr5": 5, "nr10": 10}  # weekly swipes, marked on those plans' panels
 
 # Five steps of one blue, light to dark (spending chart and extra-cost chart).
 SEQ5 = ["#cde2fb", "#8fbcf1", "#3987e5", "#1d5aa8", "#0d366b"]
-SPENDING_BOUNDS = [0, 4000, 7000, 10000, 13000, 18000]  # per semester; the top band is "$13,000+"
 EXTRA_BOUNDS = [0, 0.005, 250, 1000, 4000, float("inf")]  # per semester
 EXTRA_LABELS = ["$0 (cheapest)", "Under $250", "$250-1,000", "$1,000-4,000", "$4,000+"]
 
@@ -135,8 +137,13 @@ def extra_cost_band(extra: float) -> int:
     return next(i for i, hi in enumerate(EXTRA_BOUNDS[1:]) if extra < hi)
 
 
+def marker_price_text(name, price):
+    """"$5.15" for a collected price, "~$13?" for a placeholder."""
+    return f"~${price:.0f}?" if name in PLACEHOLDER_MARKERS else f"${price:.2f}"
+
+
 def _marker_label(name, price):
-    return f"{name}\n~${price:.0f}" + ("?" if MARKERS_ARE_PLACEHOLDERS else "")
+    return f"{name}\n{marker_price_text(name, price)}"
 
 
 def _price_axis(ax, markers=True):
@@ -283,13 +290,22 @@ def plot_lead(prices: Prices):
         ax.set_xticks([0, 7, 14, 21])
         ax.tick_params(colors=MUTED, labelsize=style.TICK, length=0)
         ax.set_xlabel(Y_LABEL, color=MUTED, fontsize=style.LABEL)
-        tag = f"~${price:.0f}/meal" + ("?" if MARKERS_ARE_PLACEHOLDERS else "")
+        tag = f"~${price:.0f}/meal?" if name in PLACEHOLDER_MARKERS else f"${price:.2f}/meal"
         ax.set_title(f"{titles[name]} ({tag})", color=INK, fontsize=style.PANEL_TITLE, loc="left", pad=10)
     axes[0].set_ylabel("Food spending per semester", color=MUTED, fontsize=style.LABEL)
     axes[0].yaxis.set_major_formatter(lambda v, _: f"${v:,.0f}")
     t21 = lowest_winning_price("nr21", prices)
     style.title(fig, f"A meal plan only saves money if a meal elsewhere would cost you more than about ${t21:.0f}")
     return fig
+
+
+def _swipes_line(ax, n):
+    """Horizontal line at the plan's weekly swipes: above it, extra meals are eaten out or cooked."""
+    import style
+
+    ax.axhline(n, color=INK, linewidth=1.6, linestyle=(0, (5, 3)), zorder=5)
+    ax.text(PRICE_RANGE[0] + 0.6, n + 0.35, "Swipes run out here", ha="left", va="bottom", fontsize=style.TICK,
+            color=INK, weight="bold", zorder=6, path_effects=_halo())
 
 
 def _spending_panels(fig_title: str, panel_data, cmap, norm, colorbar_label, colorbar_ticks=None,
@@ -306,13 +322,13 @@ def _spending_panels(fig_title: str, panel_data, cmap, norm, colorbar_label, col
         mesh = ax.pcolormesh(_edges(xs), _edges(ys), panel_data[p], cmap=cmap, norm=norm, shading="flat")
         if decorate:
             decorate(ax, p, xs, ys)
+        if p in SWIPES:
+            _swipes_line(ax, SWIPES[p])
         _price_axis(ax)
         _eaten_axis(ax, show_labels=i % 2 == 0)
         ax.set_title(PANEL_TITLES[p], fontsize=style.PANEL_TITLE, color=INK, loc="left", pad=10)
         if i % 2 == 0:
             ax.set_ylabel(Y_LABEL, color=MUTED, fontsize=style.LABEL)
-        if i >= 2:
-            ax.set_xlabel(X_LABEL, color=MUTED, fontsize=style.LABEL)
     cbar = fig.colorbar(mesh, ax=axes, location="right", shrink=0.7, aspect=30, pad=0.02)
     cbar.set_label(colorbar_label, color=MUTED, fontsize=style.LABEL)
     if colorbar_ticks is not None:
@@ -321,37 +337,56 @@ def _spending_panels(fig_title: str, panel_data, cmap, norm, colorbar_label, col
         cbar.ax.yaxis.set_major_formatter(lambda v, _: f"${v:,.0f}")
     cbar.ax.tick_params(colors=MUTED, labelsize=style.TICK, length=0)
     cbar.outline.set_visible(False)
+    fig.supxlabel(X_LABEL, color=MUTED, fontsize=style.LABEL)  # one label under both columns
     style.title(fig, fig_title)
     return fig
 
 
-def plot_spending(prices: Prices):
-    """Food spending per semester under each option, in five bands, with the band edges drawn as
-    labelled contour lines."""
-    from matplotlib.colors import BoundaryNorm, ListedColormap
+LABEL_ROWS = [16, 18, 13, 20, 8, 3, 1]  # rows tried for contour labels, away from the swipe lines at 5 and 10
+
+
+def _contour_label_spots(values, xs, ys, levels):
+    """One label position per contour level: where it crosses the first row of LABEL_ROWS it
+    crosses at all (so labels stay off the "Swipes run out here" lines)."""
+    spots = []
+    for level in levels:
+        for y in LABEL_ROWS:
+            row = values[ys.index(y)]
+            hits = [i for i in range(len(xs) - 1) if (row[i] - level) * (row[i + 1] - level) <= 0
+                    and row[i] != row[i + 1]]
+            if hits and 1 < xs[hits[0]] - PRICE_RANGE[0] and PRICE_RANGE[1] - xs[hits[0]] > 1:
+                spots.append((xs[hits[0]], y))
+                break
+    return spots
+
+
+def plot_spending(prices: Prices, step: float = 1000):
+    """Food spending per semester under each option, in $1,000 bands on one scale, with labelled
+    contour lines every $2,000."""
+    from matplotlib.colors import BoundaryNorm, LinearSegmentedColormap
 
     import style
 
     xs, ys = _axes()
     grid = spending_grid(prices, xs, ys)
     vmax = max(max(max(r) for r in grid[p]) for p in PLANS)
-    bounds = SPENDING_BOUNDS[:-1] + [max(SPENDING_BOUNDS[-1], vmax)]
-    norm = BoundaryNorm(bounds, len(SEQ5))
-    levels = SPENDING_BOUNDS[1:-1]
+    bounds = [step * i for i in range(int(vmax // step) + 2)]
+    cmap = LinearSegmentedColormap.from_list("spend", SEQ5, N=len(bounds) - 1)
+    norm = BoundaryNorm(bounds, len(bounds) - 1)
+    levels = [b for b in bounds[1:-1] if b % (2 * step) == 0]
 
     def contours(ax, p, xs, ys):
-        cs = ax.contour(xs, ys, grid[p], levels=levels, colors=SURFACE, linewidths=1.2)
-        # Labels where each line crosses mid-chart, away from the axes and the panel edges.
+        cs = ax.contour(xs, ys, grid[p], levels=levels, colors=SURFACE, linewidths=1.0)
         ax.clabel(cs, fmt=lambda v: f"${v / 1000:.0f}k", fontsize=style.TICK, colors=INK, inline=True,
-                  inline_spacing=6)
+                  inline_spacing=6, manual=_contour_label_spots(grid[p], xs, ys, cs.levels))
         for t in cs.labelTexts:
             t.set_path_effects(_halo())
 
-    labels = ["Under $4,000", "$4,000-7,000", "$7,000-10,000", "$10,000-13,000", "$13,000+"]
-    centres = [(a + b) / 2 for a, b in zip(bounds, bounds[1:])]
+    ticks = [b for b in bounds if b % (2 * step) == 0]
     return _spending_panels("A plan lowers your food bill only if you use its swipes and meals elsewhere are pricey",
-                            grid, ListedColormap(SEQ5), norm, "Total food spending per semester",
-                            colorbar_ticks=centres, colorbar_ticklabels=labels, decorate=contours)
+                            grid, cmap, norm, "Total food spending per semester ($1,000 bands)",
+                            colorbar_ticks=ticks, colorbar_ticklabels=[f"${t:,.0f}" for t in ticks],
+                            decorate=contours)
 
 
 def extra_cost_grid(prices: Prices, xs, ys):

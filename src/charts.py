@@ -139,16 +139,19 @@ def cost_per_swipe(prices: Prices, term_weeks: Optional[Dict[str, float]] = None
 
 
 def plot_swipe_cost(prices: Prices):
+    """One swipe on each off-campus plan next to the three outside prices (cooking, cheap takeout,
+    sit-down). Imported lazily: outside_food imports this module."""
     import matplotlib.pyplot as plt
+
+    from outside_food import PLACEHOLDER_MARKERS, PRICE_MARKERS, marker_price_text
 
     swipes = cost_per_swipe(prices)
     plans = {5: "nr5", 10: "nr10", 21: "nr21"}
     bars = [(f"{n}-meal plan\n(one swipe)", v, PLAN_COLORS[plans[n]]) for n, v in swipes.items()]
     neutral = "#898781"
-    bars += [("Guest breakfast\n(Houses)", prices.guest_rates["breakfast_houses"], neutral),
-             ("Guest breakfast\n(Annenberg/Quincy)", prices.guest_rates["breakfast_annenberg_quincy"], neutral),
-             ("Guest lunch\nor brunch", prices.guest_rates["lunch"], neutral),
-             ("Guest dinner", prices.guest_rates["dinner"], neutral)]
+    notes = {"Cooking": "(USDA moderate plan)"}
+    bars += [(f"{name}\n{notes.get(name, '(placeholder)')}", price, neutral) for name, price in PRICE_MARKERS]
+    value_text = {i + 3: marker_price_text(name, price) for i, (name, price) in enumerate(PRICE_MARKERS)}
 
     from matplotlib import patheffects
 
@@ -158,13 +161,15 @@ def plot_swipe_cost(prices: Prices):
     fig, ax = plt.subplots(figsize=(14, 7), facecolor=SURFACE, layout="constrained")
     _style(ax)
     ax.tick_params(labelsize=style.TICK)
-    xs = [i + (0.6 if i >= 3 else 0) for i in range(len(bars))]  # gap between plans and guest prices
+    xs = [i + (0.6 if i >= 3 else 0) for i in range(len(bars))]  # gap between plans and outside prices
     right = xs[-1] + 0.5
-    for x, (label, value, color) in zip(xs, bars):
-        ax.bar(x, value, width=0.62, color=color, zorder=3)
-        ax.text(x, value + 0.4, f"${value:.2f}", ha="center", va="bottom", fontsize=style.TICK, color=INK,
+    for i, (x, (label, value, color)) in enumerate(zip(xs, bars)):
+        placeholder = i >= 3 and PRICE_MARKERS[i - 3][0] in PLACEHOLDER_MARKERS
+        ax.bar(x, value, width=0.62, color=color, zorder=3, hatch="//" if placeholder else None,
+               edgecolor=SURFACE, linewidth=0)
+        ax.text(x, value + 0.4, value_text.get(i, f"${value:.2f}"), ha="center", va="bottom", fontsize=style.TICK, color=INK,
                 path_effects=halo, zorder=5)
-    # Dashed line at each plan's swipe cost, running across the guest prices for comparison.
+    # Dashed line at each plan's swipe cost, running across the outside prices for comparison.
     label_ys = _spread_labels([swipes[n] for n in plans], min_gap=1.2)
     for (n, plan), y_label in zip(plans.items(), label_ys):
         ax.plot([xs[0] - 0.4, right], [swipes[n]] * 2, color=PLAN_COLORS[plan], linewidth=1.5,
@@ -179,10 +184,12 @@ def plot_swipe_cost(prices: Prices):
     ax.set_ylim(0, max(b[1] for b in bars) * 1.15)
     ax.text(1, -0.17, "Off-campus plans", transform=ax.get_xaxis_transform(), ha="center", va="top",
             fontsize=style.LABEL, color=MUTED)
-    ax.text(5.5, -0.17, "HUDS guest prices, incl. 7% tax (reference only)", transform=ax.get_xaxis_transform(),
-            ha="center", va="top", fontsize=style.LABEL, color=MUTED)
-    style.title(fig, f"A 21-meal swipe costs ${swipes[21]:.2f}; a 5- or 10-meal swipe costs about "
-                     f"${(swipes[5] + swipes[10]) / 2:.0f}")
+    ax.text(sum(xs[3:]) / len(xs[3:]), -0.17, "Meals not eaten at HUDS (hatched = placeholder price)",
+            transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=style.LABEL, color=MUTED)
+    cook = dict(PRICE_MARKERS)["Cooking"]
+    style.title(fig, f"Cooking (${cook:.2f} a meal) is cheaper than any swipe; a plan only pays off against "
+                     f"meals out that cost more than ${swipes[21]:.2f} (21-meal) or about "
+                     f"${(swipes[5] + swipes[10]) / 2:.0f} (5- and 10-meal)")
     return fig
 
 

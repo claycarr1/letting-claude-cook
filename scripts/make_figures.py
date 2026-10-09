@@ -11,8 +11,9 @@ Figures (figures/), in report order:
   decision_map_undergrad_offcampus.png/.csv  cheapest option by outside price x HUDS meals eaten
   spending_by_option.png                 spending per semester under each option (5 bands, contours)
   extra_cost_by_option.png               how much more each option costs than the cheapest
+  swipe_cost.png                         cost of one swipe on each off-campus plan vs the three outside prices
   grad_cafe_spending.png                 graduate students: cheapest option by yearly cafe spending
-  swipe_cost.png                         cost of one swipe on each off-campus plan (guest prices as reference)
+Appendix (figures/appendix/; on-campus undergrads are out of scope -- they have no choice of plan):
   on_campus_cost_per_meal.png/.csv       the mandatory unlimited plan's cost per meal eaten
 The guest-rate results are archived in figures/appendix/guest_rate_model/ (git tag guest-rate-model).
 """
@@ -36,6 +37,7 @@ from on_campus import FULL_WEEK, plot_on_campus, resident_cost_per_meal  # noqa:
 from outside_food import plot_extra_cost, plot_lead, plot_main_map, plot_spending, write_grid_csv  # noqa: E402
 
 OUT = ROOT / "figures"
+APPENDIX = OUT / "appendix"
 
 
 def main():
@@ -52,17 +54,17 @@ def main():
     write_grid_csv(prices, OUT / "decision_map_undergrad_offcampus.csv")
     save(plot_spending(prices), OUT / "spending_by_option.png")
     save(plot_extra_cost(prices), OUT / "extra_cost_by_option.png")
-    save(plot_grad_spending(prices), OUT / "grad_cafe_spending.png")
     save(plot_swipe_cost(prices), OUT / "swipe_cost.png")
+    save(plot_grad_spending(prices), OUT / "grad_cafe_spending.png")
 
-    save(plot_on_campus(prices, band_draws=draw_assumptions()), OUT / "on_campus_cost_per_meal.png")
-    with (OUT / "on_campus_cost_per_meal.csv").open("w", newline="") as f:
+    save(plot_on_campus(prices, band_draws=draw_assumptions()), APPENDIX / "on_campus_cost_per_meal.png")
+    with (APPENDIX / "on_campus_cost_per_meal.csv").open("w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["meals_per_week", "cost_per_meal_boardplus_spent", "cost_per_meal_boardplus_unspent"])
         for m in range(1, FULL_WEEK + 1):
             w.writerow([m, round(resident_cost_per_meal(m, prices), 2),
                         round(resident_cost_per_meal(m, prices, count_boardplus=False), 2)])
-    print("wrote figures/on_campus_cost_per_meal.csv")
+    print("wrote figures/appendix/on_campus_cost_per_meal.csv")
 
 
 if __name__ == "__main__":
