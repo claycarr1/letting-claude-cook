@@ -123,7 +123,7 @@ Python 3.9+ (the machine has 3.9.6). Dependencies in a project virtualenv `.venv
 - **One "outside price" per meal**, a blend of cooking and eating out, is the x-axis (from about $3). It is a variable until real prices are collected.
 - **Guest rates stay only as a reference** ("what HUDS charges for a meal"), not as an option.
 - Weekends away fixed at **2 per term** for the new charts.
-- **The guest-rate results are archived** in `figures/appendix/guest_rate_model/` with git tag `guest-rate-model` (local tag, not pushed) so old and new can be compared. Swipe-plan functions still default to guest rates when no outside price is given, so the archive reproduces.
+- **The guest-rate results are archived** in `figures/appendix/guest_rate_model/` with git tag `guest-rate-model` (pushed to origin 2026-10-10) so old and new can be compared. Swipe-plan functions still default to guest rates when no outside price is given, so the archive reproduces.
 - Graduate students are unaffected: HUDS cafés sell to anyone, so paying cash at the café is a real option.
 
 **Monte Carlo**
