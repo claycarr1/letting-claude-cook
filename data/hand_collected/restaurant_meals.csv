@@ -1,31 +1,31 @@
-restaurant,neighborhood,address,service,meal_type,item,menu_price,includes_drink,price_source,date_checked,collected_by,notes
-Luxor Cafe,Harvard Sq,148 Mt Auburn St,counter,breakfast,egg and cheese sandwich,9.75,no,restaurant website,2026-10-09,Claude (web),"luxorcafee.com/menu; counter service likely, not confirmed"
-Daily Provisions,Harvard Sq,1 Brattle Sq,counter,breakfast,avocado toast,11.00,no,news article,2025-08-07,Claude (web),Boston Globe Aug 2025; own site only shows NYC prices; please verify in person
-Blue Bottle Coffee,Harvard Sq,40 Bow St,counter,breakfast,breakfast sandwich,11.00,no,restaurant website,2026-10-09,Claude (web),"own pickup ordering page (order.online, run by DoorDash)"
-Bluestone Lane,Harvard Sq,27 Brattle St,sit-down,breakfast,avocado smash,18.15,no,restaurant website,2026-10-09,Claude (web),"own ordering page (order.online, run by DoorDash); table service likely, not confirmed"
-Dunkin',Harvard Sq,61 Church St,counter,breakfast,sausage egg and cheese,5.39,no,restaurant website,2026-10-09,CC,dunkindonuts.com menu; a ~$6 meal deal also exists
-Tatte Bakery & Cafe,Harvard Sq,1288 Massachusetts Ave,counter,breakfast,breakfast sandwich,12.85,no,restaurant website,2026-10-09,Claude (web),Tatte's online ordering (order.online); may be ~10-15% above counter price; verify if possible
-The Friendly Toast,Harvard Sq,1230 Massachusetts Ave,sit-down,breakfast,Friendly Toast Benny,16.50,no,restaurant website,2026-10-09,Claude (web),thefriendlytoast.com ordering
-Flour Bakery + Cafe,Central Sq,190 Massachusetts Ave,counter,breakfast,breakfast egg sandwich,10.50,no,restaurant website,2026-10-09,Claude (web),flourbakery.com/menu (chain-wide menu)
-Veggie Galaxy,Central Sq,450 Massachusetts Ave,sit-down,breakfast,traditional eggs Benedict,14.99,no,restaurant website,2026-10-09,Claude (web),veggiegalaxy.com/menu
-Tatte Bakery & Cafe,Harvard Sq,1288 Massachusetts Ave,counter,lunch,chicken salad sandwich,16.80,no,restaurant website,2026-10-09,Claude (web),Tatte's online ordering (order.online); may be above counter price; verify if possible
-Sweetgreen,Harvard Sq,39 JFK St,counter,lunch,Harvest Bowl,13.45,no,restaurant website,2026-10-09,Claude (web),sweetgreen.com/locations/harvard-square
-Saloniki Greek,Harvard Sq,24 Dunster St,counter,lunch,grilled chicken pita,12.99,no,restaurant website,2026-10-09,Claude (web),order.salonikigreek.com Harvard Square
-Flour Bakery + Cafe,Central Sq,190 Massachusetts Ave,counter,lunch,achiote chicken sandwich,14.25,no,restaurant website,2026-10-09,Claude (web),flourbakery.com/menu (chain-wide menu)
-Bon Me,Harvard Sq,Smith Campus Center,counter,lunch,rice bowl,13.00,no,restaurant website,2026-10-09,CC,own menu; noodle salad $13.50
-Life Alive,Central Sq,765 Massachusetts Ave,counter,lunch,teriyaki wrap,14.50,no,restaurant website,2026-10-09,CC,own menu; all-day breakfast burrito also $14.50
-CAVA,Harvard Sq,22 Brattle St,counter,lunch,Greek Goddess steak salad,16.00,no,restaurant website,2026-10-09,CC,cava.com; chicken bowl price not checked; salmon bowl $16.60
-Roxy's Grilled Cheese,Central Sq,292 Massachusetts Ave,counter,lunch,Classic Three Cheese,9.00,no,restaurant website,2026-10-09,CC,own menu
-The Friendly Toast,Harvard Sq,1230 Massachusetts Ave,sit-down,lunch,Classic Burger,18.00,no,restaurant website,2026-10-09,Claude (web),closes 2:30pm weekdays
-Toscano,Harvard Sq,52 Brattle St,sit-down,lunch,Rigatoni Toscano (lunch menu),26.00,no,restaurant website,2026-10-09,Claude (web),toscanoboston.com/menu/lunch
-Felipe's Taqueria,Harvard Sq,21 Brattle St,counter,dinner,burrito,8.00,no,restaurant website,2026-10-09,Claude (web),own Toast ordering page
-El Jefe's Taqueria,Harvard Sq,14 Brattle St,counter,dinner,burrito,12.45,no,restaurant website,2026-10-09,Claude (web),own Toast ordering page; protein upcharges not confirmed
-Tasty Burger,Harvard Sq,40 JFK St,counter,dinner,The Big Tasty (no fries),9.05,no,restaurant website,2026-10-09,Claude (web),own Toast ordering page
-Shake Shack,Harvard Sq,92 Winthrop St,counter,dinner,"Big Shack (double, no fries)",12.99,no,restaurant website,2026-10-09,CC,Shake Shack ordering; single ShackBurger not checked
-Joe's Pizza,Harvard Sq,3 Brattle St,counter,dinner,2 cheese slices,10.00,no,in person,2026-10-09,CC,about $10 for 2 slices per CC; slices not listed online
-Pinocchio's Pizza & Subs,Harvard Sq,74 Winthrop St,counter,dinner,steak and cheese sub,13.60,no,restaurant website,2026-10-09,CC,online pickup ordering; whole pies only for pizza (Sicilian $31.75)
-Toscano,Harvard Sq,52 Brattle St,sit-down,dinner,Rigatoni Toscano,32.00,no,restaurant website,2026-10-09,Claude (web),toscanoboston.com/menu
-Mr. Bartley's Burger Cottage,Harvard Sq,1246 Massachusetts Ave,sit-down,dinner,Joe Bartley cheeseburger,16.00,no,restaurant website,2026-10-09,Claude (web),mrbartley.com/menu
-Grendel's Den,Harvard Sq,,sit-down,dinner,grass fed beef burger,18.00,no,restaurant website,2026-10-09,Claude (web),grendelsden.com
-Russell House Tavern,Harvard Sq,,sit-down,dinner,R. House Burger,19.00,no,restaurant website,2026-10-09,Claude (web),russellhousecambridge.com/menus
-Alden & Harlow,Harvard Sq,40 Brattle St,sit-down,dinner,Secret Burger,19.00,no,restaurant website,2026-10-09,Claude (web),aldenharlow.com
+restaurant,type,neighborhood,address,service,meal_type,item,menu_price,includes_drink,price_source,date_checked,collected_by,notes
+Luxor Cafe,café,Harvard Sq,148 Mt Auburn St,counter,breakfast,egg and cheese sandwich,9.75,no,restaurant website,2026-10-09,Claude (web),"luxorcafee.com/menu; counter service likely, not confirmed"
+Daily Provisions,bakery-café,Harvard Sq,1 Brattle Sq,counter,breakfast,avocado toast,11.00,no,news article,2025-08-07,Claude (web),Boston Globe Aug 2025; own site only shows NYC prices; please verify in person
+Blue Bottle Coffee,coffee chain,Harvard Sq,40 Bow St,counter,breakfast,breakfast sandwich,11.00,no,restaurant website,2026-10-09,Claude (web),"own pickup ordering page (order.online, run by DoorDash)"
+Bluestone Lane,café,Harvard Sq,27 Brattle St,sit-down,breakfast,avocado smash,18.15,no,restaurant website,2026-10-09,Claude (web),"own ordering page (order.online, run by DoorDash); table service likely, not confirmed"
+Dunkin',coffee chain,Harvard Sq,61 Church St,counter,breakfast,sausage egg and cheese,5.39,no,restaurant website,2026-10-09,CC,dunkindonuts.com menu; a ~$6 meal deal also exists
+Tatte Bakery & Cafe,bakery-café,Harvard Sq,1288 Massachusetts Ave,counter,breakfast,breakfast sandwich,12.85,no,restaurant website,2026-10-09,Claude (web),Tatte's online ordering (order.online); may be ~10-15% above counter price; verify if possible
+The Friendly Toast,diner,Harvard Sq,1230 Massachusetts Ave,sit-down,breakfast,Friendly Toast Benny,16.50,no,restaurant website,2026-10-09,Claude (web),thefriendlytoast.com ordering
+Flour Bakery + Cafe,bakery-café,Central Sq,190 Massachusetts Ave,counter,breakfast,breakfast egg sandwich,10.50,no,restaurant website,2026-10-09,Claude (web),flourbakery.com/menu (chain-wide menu)
+Veggie Galaxy,diner,Central Sq,450 Massachusetts Ave,sit-down,breakfast,traditional eggs Benedict,14.99,no,restaurant website,2026-10-09,Claude (web),veggiegalaxy.com/menu
+Tatte Bakery & Cafe,bakery-café,Harvard Sq,1288 Massachusetts Ave,counter,lunch,chicken salad sandwich,16.80,no,restaurant website,2026-10-09,Claude (web),Tatte's online ordering (order.online); may be above counter price; verify if possible
+Sweetgreen,salad/bowls,Harvard Sq,39 JFK St,counter,lunch,Harvest Bowl,13.45,no,restaurant website,2026-10-09,Claude (web),sweetgreen.com/locations/harvard-square
+Saloniki Greek,Greek,Harvard Sq,24 Dunster St,counter,lunch,grilled chicken pita,12.99,no,restaurant website,2026-10-09,Claude (web),order.salonikigreek.com Harvard Square
+Flour Bakery + Cafe,bakery-café,Central Sq,190 Massachusetts Ave,counter,lunch,achiote chicken sandwich,14.25,no,restaurant website,2026-10-09,Claude (web),flourbakery.com/menu (chain-wide menu)
+Bon Me,Vietnamese,Harvard Sq,Smith Campus Center,counter,lunch,rice bowl,13.00,no,restaurant website,2026-10-09,CC,own menu; noodle salad $13.50
+Life Alive,healthy bowls,Central Sq,765 Massachusetts Ave,counter,lunch,teriyaki wrap,14.50,no,restaurant website,2026-10-09,CC,own menu; all-day breakfast burrito also $14.50
+CAVA,Mediterranean,Harvard Sq,22 Brattle St,counter,lunch,Greek Goddess steak salad,16.00,no,restaurant website,2026-10-09,CC,cava.com; chicken bowl price not checked; salmon bowl $16.60
+Roxy's Grilled Cheese,grilled cheese,Central Sq,292 Massachusetts Ave,counter,lunch,Classic Three Cheese,9.00,no,restaurant website,2026-10-09,CC,own menu
+The Friendly Toast,diner,Harvard Sq,1230 Massachusetts Ave,sit-down,lunch,Classic Burger,18.00,no,restaurant website,2026-10-09,Claude (web),closes 2:30pm weekdays
+Toscano,Italian,Harvard Sq,52 Brattle St,sit-down,lunch,Rigatoni Toscano (lunch menu),26.00,no,restaurant website,2026-10-09,Claude (web),toscanoboston.com/menu/lunch
+Felipe's Taqueria,Mexican,Harvard Sq,21 Brattle St,counter,dinner,burrito,8.00,no,restaurant website,2026-10-09,Claude (web),own Toast ordering page
+El Jefe's Taqueria,Mexican,Harvard Sq,14 Brattle St,counter,dinner,burrito,12.45,no,restaurant website,2026-10-09,Claude (web),own Toast ordering page; protein upcharges not confirmed
+Tasty Burger,burgers,Harvard Sq,40 JFK St,counter,dinner,The Big Tasty (no fries),9.05,no,restaurant website,2026-10-09,Claude (web),own Toast ordering page
+Shake Shack,burgers,Harvard Sq,92 Winthrop St,counter,dinner,"Big Shack (double, no fries)",12.99,no,restaurant website,2026-10-09,CC,Shake Shack ordering; single ShackBurger not checked
+Joe's Pizza,pizza,Harvard Sq,3 Brattle St,counter,dinner,2 cheese slices,10.00,no,in person,2026-10-09,CC,about $10 for 2 slices per CC; slices not listed online
+Pinocchio's Pizza & Subs,pizza,Harvard Sq,74 Winthrop St,counter,dinner,steak and cheese sub,13.60,no,restaurant website,2026-10-09,CC,online pickup ordering; whole pies only for pizza (Sicilian $31.75)
+Toscano,Italian,Harvard Sq,52 Brattle St,sit-down,dinner,Rigatoni Toscano,32.00,no,restaurant website,2026-10-09,Claude (web),toscanoboston.com/menu
+Mr. Bartley's Burger Cottage,burgers,Harvard Sq,1246 Massachusetts Ave,sit-down,dinner,Joe Bartley cheeseburger,16.00,no,restaurant website,2026-10-09,Claude (web),mrbartley.com/menu
+Grendel's Den,pub,Harvard Sq,,sit-down,dinner,grass fed beef burger,18.00,no,restaurant website,2026-10-09,Claude (web),grendelsden.com
+Russell House Tavern,tavern,Harvard Sq,,sit-down,dinner,R. House Burger,19.00,no,restaurant website,2026-10-09,Claude (web),russellhousecambridge.com/menus
+Alden & Harlow,New American,Harvard Sq,40 Brattle St,sit-down,dinner,Secret Burger,19.00,no,restaurant website,2026-10-09,Claude (web),aldenharlow.com

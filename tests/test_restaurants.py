@@ -61,3 +61,25 @@ def test_real_sample():
     assert sum(float(m["menu_price"]) for m in meals if m["service"] == "counter") == pytest.approx(236.57)
     assert average_price("counter") == pytest.approx(236.57 * 1.07 / 20)
     assert average_price("sit-down") == pytest.approx(197.64 * 1.25 / 10)
+
+
+def test_types_and_log_tables_in_report():
+    # Every row has a type from the list, and report.md holds the current log tables.
+    from pathlib import Path
+
+    from restaurants import RESTAURANT_TYPES, log_table
+
+    meals = load_meals()
+    assert all(m["type"] in RESTAURANT_TYPES for m in meals)
+    report = (Path(__file__).resolve().parent.parent / "report.md").read_text(encoding="utf-8")
+    for service in ("counter", "sit-down"):
+        assert log_table(service, meals) in report
+    first = log_table("counter", meals).splitlines()[2]
+    assert "Dunkin'" in first and "$5.77" in first  # 5.39 x 1.07, the cheapest meal
+
+
+def test_rejects_unknown_type(tmp_path):
+    path = tmp_path / "m.csv"
+    path.write_text("restaurant,type,service,meal_type,menu_price,price_source\nX,fusion,counter,lunch,10,in person\n")
+    with pytest.raises(ValueError):
+        load_meals(path)

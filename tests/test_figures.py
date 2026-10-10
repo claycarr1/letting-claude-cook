@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import pytest  # noqa: E402
 
 import style  # noqa: E402
-from charts import plot_grad_spending, plot_swipe_cost  # noqa: E402
+from charts import plot_grad_spending, plot_restaurant_meals, plot_swipe_cost  # noqa: E402
 from on_campus import plot_on_campus  # noqa: E402
 from outside_food import (  # noqa: E402
     extra_cost_band,
@@ -23,7 +23,8 @@ from outside_food import (  # noqa: E402
 )
 from test_model import PRICES  # noqa: E402
 
-FIGURES = [plot_lead, plot_main_map, plot_spending, plot_extra_cost, plot_swipe_cost, plot_on_campus_extra,
+FIGURES = [plot_lead, plot_main_map, plot_spending, plot_extra_cost, plot_swipe_cost, plot_restaurant_meals,
+           plot_on_campus_extra,
            plot_grad_spending, plot_on_campus]
 
 

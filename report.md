@@ -110,6 +110,52 @@ The cooking price is computed in `src/cooking.py` from `data/cooking_cost.csv` (
 
 The meal-type averages mix counter and sit-down meals in the sample's proportions, so they depend on how many of each were collected; the charts use the counter and sit-down averages only.
 
+**`figures/restaurant_meals_vs_swipes.png`** — Every sampled meal as a dot, sorted by real price (7% tax; plus 18% tip for sit-down), circles for counter service and squares for sit-down, with dashed lines at each plan's swipe cost if every swipe is used ($13.79 for the 21-meal / on-campus plan, $20.11 for the 10-meal, $20.22 for the 5-meal). A swipe is the cheaper way to eat any meal above its line: the 21-meal swipe beats 19 of the 30 meals (9 counter, all 10 sit-down); the 5- and 10-meal swipes beat 8, all sit-down.
+
+#### Restaurant log
+
+Every meal in the sample, cheapest first. "Real price" is what the meal costs out the door. Restaurant types were assigned by Claude from the user's list of types.
+
+**Counter service** (20 meals, mean $12.66):
+
+| # | Restaurant | Type | Meal | Item | Menu price | Real price (with tax) |
+|---|---|---|---|---|---|---|
+| 1 | Dunkin' | coffee chain | breakfast | sausage egg and cheese | $5.39 | $5.77 |
+| 2 | Felipe's Taqueria | Mexican | dinner | burrito | $8.00 | $8.56 |
+| 3 | Roxy's Grilled Cheese | grilled cheese | lunch | Classic Three Cheese | $9.00 | $9.63 |
+| 4 | Tasty Burger | burgers | dinner | The Big Tasty (no fries) | $9.05 | $9.68 |
+| 5 | Luxor Cafe | café | breakfast | egg and cheese sandwich | $9.75 | $10.43 |
+| 6 | Joe's Pizza | pizza | dinner | 2 cheese slices | $10.00 | $10.70 |
+| 7 | Flour Bakery + Cafe | bakery-café | breakfast | breakfast egg sandwich | $10.50 | $11.24 |
+| 8 | Blue Bottle Coffee | coffee chain | breakfast | breakfast sandwich | $11.00 | $11.77 |
+| 9 | Daily Provisions | bakery-café | breakfast | avocado toast | $11.00 | $11.77 |
+| 10 | El Jefe's Taqueria | Mexican | dinner | burrito | $12.45 | $13.32 |
+| 11 | Tatte Bakery & Cafe | bakery-café | breakfast | breakfast sandwich | $12.85 | $13.75 |
+| 12 | Saloniki Greek | Greek | lunch | grilled chicken pita | $12.99 | $13.90 |
+| 13 | Shake Shack | burgers | dinner | Big Shack (double, no fries) | $12.99 | $13.90 |
+| 14 | Bon Me | Vietnamese | lunch | rice bowl | $13.00 | $13.91 |
+| 15 | Sweetgreen | salad/bowls | lunch | Harvest Bowl | $13.45 | $14.39 |
+| 16 | Pinocchio's Pizza & Subs | pizza | dinner | steak and cheese sub | $13.60 | $14.55 |
+| 17 | Flour Bakery + Cafe | bakery-café | lunch | achiote chicken sandwich | $14.25 | $15.25 |
+| 18 | Life Alive | healthy bowls | lunch | teriyaki wrap | $14.50 | $15.52 |
+| 19 | CAVA | Mediterranean | lunch | Greek Goddess steak salad | $16.00 | $17.12 |
+| 20 | Tatte Bakery & Cafe | bakery-café | lunch | chicken salad sandwich | $16.80 | $17.98 |
+
+**Sit-down** (10 meals, mean $24.70):
+
+| # | Restaurant | Type | Meal | Item | Menu price | Real price (with tax and 18% tip) |
+|---|---|---|---|---|---|---|
+| 1 | Veggie Galaxy | diner | breakfast | traditional eggs Benedict | $14.99 | $18.74 |
+| 2 | Mr. Bartley's Burger Cottage | burgers | dinner | Joe Bartley cheeseburger | $16.00 | $20.00 |
+| 3 | The Friendly Toast | diner | breakfast | Friendly Toast Benny | $16.50 | $20.62 |
+| 4 | Grendel's Den | pub | dinner | grass fed beef burger | $18.00 | $22.50 |
+| 5 | The Friendly Toast | diner | lunch | Classic Burger | $18.00 | $22.50 |
+| 6 | Bluestone Lane | café | breakfast | avocado smash | $18.15 | $22.69 |
+| 7 | Alden & Harlow | New American | dinner | Secret Burger | $19.00 | $23.75 |
+| 8 | Russell House Tavern | tavern | dinner | R. House Burger | $19.00 | $23.75 |
+| 9 | Toscano | Italian | lunch | Rigatoni Toscano (lunch menu) | $26.00 | $32.50 |
+| 10 | Toscano | Italian | dinner | Rigatoni Toscano | $32.00 | $40.00 |
+
 - **Daily Provisions** (`price_source` "news article", August 2025 Boston Globe) is kept: dropping it moves the counter average from $12.66 to $12.70 and doesn't change the sit-down average.
 - **Joe's Pizza** is the user's in-person estimate for two cheese slices (about $10; slices aren't listed online).
 

@@ -446,3 +446,53 @@ def plot_meal_type_savings(prices: Prices, weekends_away: int = 2):
                  "Compares only the 5-meal plan with no plan.",
                  color=MUTED, fontsize=9, loc="left")
     return fig
+
+
+# ---------------------------------------------------------------------------- 7. restaurant meals vs swipes
+
+SERVICE_STYLE = {"counter": ("#4a3aa7", "o", "Counter service"), "sit-down": ("#e87ba4", "s", "Sit-down (incl. 18% tip)")}
+
+
+def plot_restaurant_meals(prices: Prices):
+    """Every sampled restaurant meal as a dot, cheapest to most expensive, coloured (and shaped) by
+    counter vs sit-down, with each plan's swipe cost as a horizontal line: a swipe beats every meal
+    above its line."""
+    import matplotlib.pyplot as plt
+
+    import style
+    from restaurants import load_meals
+
+    meals = sorted(load_meals(), key=lambda m: (m["price"], m["restaurant"]))
+    swipes = cost_per_swipe(prices)
+    fig, ax = plt.subplots(figsize=(15, 8.5), facecolor=SURFACE, layout="constrained")
+    _style(ax)
+    ax.grid(axis="y", color=GRID_COLOR, linewidth=0.8)
+    ax.set_axisbelow(True)
+    xs = list(range(len(meals)))
+    for service, (color, marker, label) in SERVICE_STYLE.items():
+        pts = [(x, m["price"]) for x, m in zip(xs, meals) if m["service"] == service]
+        ax.scatter([p[0] for p in pts], [p[1] for p in pts], s=90, color=color, marker=marker, zorder=4,
+                   edgecolor=SURFACE, linewidth=1.5, label=label)
+    plans = {21: "nr21", 10: "nr10", 5: "nr5"}
+    names = {21: "21-meal / on-campus swipe", 10: "10-meal swipe", 5: "5-meal swipe"}
+    label_ys = _spread_labels([swipes[n] for n in plans], min_gap=1.3)
+    for (n, plan), y_label in zip(plans.items(), label_ys):
+        ax.axhline(swipes[n], color=PLAN_COLORS[plan], linewidth=1.6, linestyle=(0, (5, 3)), zorder=3)
+        ax.text(len(meals) - 0.3, y_label, f"{names[n]} ${swipes[n]:.2f}", va="center", ha="left",
+                fontsize=style.TICK, weight="bold", color=LABEL_INK.get(plan, PLAN_COLORS[plan]))
+    ax.set_xticks(xs, [f"{m['restaurant']} ({m['meal_type']})" for m in meals], rotation=60, ha="right",
+                  rotation_mode="anchor", fontsize=style.TICK, color=INK)
+    ax.tick_params(axis="y", labelsize=style.TICK)
+    ax.set_xlim(-0.7, len(meals) - 0.4)
+    ax.set_ylim(0, max(m["price"] for m in meals) * 1.08)
+    ax.set_ylabel("Real price of the meal", color=MUTED, fontsize=style.LABEL)
+    ax.yaxis.set_major_formatter(lambda v, _: f"${v:.0f}")
+    ax.legend(loc="upper left", frameon=False, fontsize=style.TICK, labelcolor=INK)
+    beat21 = sum(m["price"] > swipes[21] for m in meals)
+    small = min(swipes[5], swipes[10])
+    beat_small = [m for m in meals if m["price"] > max(swipes[5], swipes[10])]
+    sit_only = all(m["service"] == "sit-down" for m in beat_small)
+    style.title(fig, f"A 21-meal swipe (${swipes[21]:.2f}) is cheaper than {beat21} of these {len(meals)} meals out; "
+                     f"a 5- or 10-meal swipe (about ${small:.0f}) only beats {len(beat_small)}"
+                     + (", all sit-down" if sit_only else ""))
+    return fig

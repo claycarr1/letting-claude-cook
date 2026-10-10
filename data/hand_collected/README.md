@@ -9,6 +9,7 @@ Aim for a spread: roughly 10 breakfast, 10 lunch and 10 dinner items, from cheap
 | Column | What to enter |
 |---|---|
 | `restaurant` | Name as on the menu |
+| `type` | One of: coffee chain, café, bakery-café, Mexican, burgers, pizza, salad/bowls, Mediterranean, Greek, Vietnamese, grilled cheese, healthy bowls, diner, pub, tavern, New American, Italian (checked in code; add new types to `RESTAURANT_TYPES` in `src/restaurants.py`) |
 | `neighborhood` | `Harvard Sq` or `Central Sq` |
 | `address` | Street address |
 | `service` | `counter` (order at the counter / takeout) or `sit-down` (table service) — decides whether a tip is added |

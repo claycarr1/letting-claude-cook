@@ -21,6 +21,9 @@ SIT_DOWN_TIP = 0.18
 SERVICES = ("counter", "sit-down")
 MEAL_TYPES = ("breakfast", "lunch", "dinner")
 PRICE_SOURCES = ("in person", "restaurant website", "menu photo", "news article")
+RESTAURANT_TYPES = ("coffee chain", "café", "bakery-café", "Mexican", "burgers", "pizza", "salad/bowls", "Mediterranean",
+                    "Greek", "Vietnamese", "grilled cheese", "healthy bowls", "diner", "pub", "tavern", "New American",
+                    "Italian")
 
 
 def out_the_door(menu_price: float, service: str) -> float:
@@ -42,6 +45,8 @@ def load_meals(csv_path: Path = DEFAULT_CSV, exclude_sources: Iterable[str] = ()
             for col, allowed in (("service", SERVICES), ("meal_type", MEAL_TYPES), ("price_source", PRICE_SOURCES)):
                 if r[col] not in allowed:
                     raise ValueError(f"{csv_path.name} line {n}: {col} {r[col]!r} not in {allowed}")
+            if "type" in r and r["type"] not in RESTAURANT_TYPES:
+                raise ValueError(f"{csv_path.name} line {n}: type {r['type']!r} not in {RESTAURANT_TYPES}")
             if r["price_source"] in exclude:
                 continue
             out.append({**r, "price": out_the_door(float(r["menu_price"]), r["service"])})
@@ -82,3 +87,17 @@ def summary_rows(meals: Optional[List[dict]] = None) -> List[dict]:
                                                      and m["price_source"] != "news article"]) for s in SERVICES]
     return [{"group": g, **{k: round(v, 2) for k, v in _summary([m["price"] for m in ms]).items()}}
             for g, ms in groups if ms]
+
+
+def log_table(service: str, meals: Optional[List[dict]] = None) -> str:
+    """Markdown table of every meal with this service, cheapest first (ties by restaurant name):
+    restaurant, type, meal, item, menu price and out-the-door price."""
+    meals = load_meals() if meals is None else meals
+    real = "with tax and 18% tip" if service == "sit-down" else "with tax"
+    lines = [f"| # | Restaurant | Type | Meal | Item | Menu price | Real price ({real}) |",
+             "|---|---|---|---|---|---|---|"]
+    rows = sorted((m for m in meals if m["service"] == service), key=lambda m: (m["price"], m["restaurant"]))
+    for i, m in enumerate(rows, start=1):
+        lines.append(f"| {i} | {m['restaurant']} | {m.get('type', '')} | {m['meal_type']} | {m['item']} | "
+                     f"${float(m['menu_price']):.2f} | ${m['price']:.2f} |")
+    return "\n".join(lines)
