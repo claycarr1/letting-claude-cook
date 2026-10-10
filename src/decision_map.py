@@ -31,14 +31,14 @@ Assumptions (each needs to go in report.md):
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 from model import (
     Prices,
     WeeklyPattern,
     cost_cash_at_cafe,
     cost_outside,
-    flat_prices,
+    outside_prices_for,
     cost_gradplus,
     cost_no_plan,
     cost_non_resident,
@@ -139,14 +139,14 @@ def annual_costs(meals_out: float, breakfasts_skipped: float, weekends_away: flo
                  plans: Optional[List[str]] = None, term_weeks: Optional[Dict[str, float]] = None,
                  cafe_meal_price: Optional[float] = None, meals_out_from: str = "spread",
                  breakfast_venue: str = "houses", full_first_week_swipes: bool = False,
-                 outside_price: Optional[float] = None) -> Dict[str, float]:
+                 outside_price: Optional[Union[float, Dict[str, float]]] = None) -> Dict[str, float]:
     """Cost per academic year (USD) of each plan for these habits.
 
     term_weeks gives the weeks of dining in each term, e.g. {"fall": 15.57, "spring": 14.86};
     by default it comes from the term dates in data/huds_prices.csv (model.load_term_weeks).
     The short first week of each term (model.load_first_week_fractions) is a home week.
 
-    outside_price: cost of a meal eaten out or cooked. When given, meals the swipe plans don't
+    outside_price: cost of a meal eaten out or cooked -- one price, or {meal type: price}. When given, meals the swipe plans don't
     cover are priced at it, and "no_plan" (every HUDS meal eaten out or cooked instead) is
     available. Costs cover only the meals the student would eat at HUDS; meals they eat
     elsewhere anyway cost the same under every option (see outside_food.year_food_spending
@@ -172,7 +172,7 @@ def annual_costs(meals_out: float, breakfasts_skipped: float, weekends_away: flo
                 total += cost_fn(away, weekends_away, 0.0).extra_cash
         return total
 
-    outside = flat_prices(outside_price) if outside_price is not None else None
+    outside = outside_prices_for(outside_price) if outside_price is not None else None
 
     def non_resident(n):
         return lambda p, w, f: cost_non_resident(p, w, prices, n, breakfast_venue, first_week_fraction=f,

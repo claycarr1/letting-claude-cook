@@ -1,0 +1,124 @@
+{
+ "runs": 2000,
+ "squares": 924,
+ "seed": 2026,
+ "mean_stability": 0.9661926406926407,
+ "classes": {
+  "solid": 813,
+  "toss-up": 73,
+  "mostly": 38
+ },
+ "contested_squares": 111,
+ "toss_up_pairs": {
+  "no_plan vs nr5": 45,
+  "nr5 vs nr10": 15,
+  "no_plan vs nr21": 8,
+  "nr10 vs nr21": 3,
+  "nr5 vs nr21": 2
+ },
+ "by_service": {
+  "counter": {
+   "squares": 462,
+   "mean_stability": 1.0,
+   "solid": 462,
+   "mostly": 0,
+   "toss-up": 0,
+   "baseline_options": {
+    "no_plan": 462
+   }
+  },
+  "sit-down": {
+   "squares": 462,
+   "mean_stability": 0.9323852813852814,
+   "solid": 351,
+   "mostly": 38,
+   "toss-up": 73,
+   "baseline_options": {
+    "no_plan": 341,
+    "nr5": 50,
+    "nr10": 19,
+    "nr21": 52
+   }
+  }
+ },
+ "assumption_effects": [
+  {
+   "assumption": "meals_out_from",
+   "label": "Which HUDS meals are skipped",
+   "effect_pp": 4.25323311805591,
+   "most_agreement": "spread",
+   "least_agreement": "lunches_first",
+   "by_setting": {
+    "dinners_first": 0.7229105124700557,
+    "lunches_first": 0.70384393335213,
+    "spread": 0.7463762645326891
+   }
+  },
+  {
+   "assumption": "eat_out",
+   "label": "Restaurant sample (resampled)",
+   "effect_pp": 2.2243243243243227,
+   "most_agreement": "lower half",
+   "least_agreement": "upper half",
+   "by_setting": {
+    "lower half": 0.7360360360360361,
+    "upper half": 0.7137927927927928
+   }
+  },
+  {
+   "assumption": "cooking",
+   "label": "Cooking cost ($4.01-$6.42)",
+   "effect_pp": 1.633333333333331,
+   "most_agreement": "lower half",
+   "least_agreement": "upper half",
+   "by_setting": {
+    "lower half": 0.733081081081081,
+    "upper half": 0.7167477477477477
+   }
+  },
+  {
+   "assumption": "first_week",
+   "label": "Full or partial first-week swipes",
+   "effect_pp": 0.9411762352750652,
+   "most_agreement": "partial",
+   "least_agreement": "full",
+   "by_setting": {
+    "full": 0.7201661803074517,
+    "partial": 0.7295779426602024
+   }
+  },
+  {
+   "assumption": "weeks",
+   "label": "Weeks per term",
+   "effect_pp": 0.4729729729729737,
+   "most_agreement": "lower half",
+   "least_agreement": "upper half",
+   "by_setting": {
+    "lower half": 0.7272792792792793,
+    "upper half": 0.7225495495495495
+   }
+  },
+  {
+   "assumption": "tip",
+   "label": "Sit-down tip (15-22%)",
+   "effect_pp": 0.19729729729729417,
+   "most_agreement": "lower half",
+   "least_agreement": "upper half",
+   "by_setting": {
+    "lower half": 0.7259009009009009,
+    "upper half": 0.7239279279279279
+   }
+  },
+  {
+   "assumption": "tip_on_tax",
+   "label": "Tip on pre- or after-tax price",
+   "effect_pp": 0.14433192961800234,
+   "most_agreement": "after tax",
+   "least_agreement": "pre-tax",
+   "by_setting": {
+    "after tax": 0.7256339090835602,
+    "pre-tax": 0.7241905897873802
+   }
+  }
+ ]
+}

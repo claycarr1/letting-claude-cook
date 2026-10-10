@@ -10,6 +10,8 @@ Figures (figures/), in report order:
   restaurant_prices_summary.csv          out-the-door restaurant prices by service and meal type (feeds the markers)
   spending_at_three_prices.png           lead chart: spending per semester vs HUDS meals, at 3 outside prices
   decision_map_undergrad_offcampus.png/.csv  cheapest option by outside price x HUDS meals eaten
+  decision_map_meal_type_prices.png      same question with breakfast/lunch/brunch/dinner priced separately,
+                                         by cooking share (counter and sit-down panels; Monte Carlo baseline)
   spending_by_option.png                 spending per semester under each option (5 bands, contours)
   extra_cost_by_option.png               how much more each option costs than the cheapest
   swipe_cost.png                         cost of one swipe on each plan vs the three outside prices
@@ -18,6 +20,7 @@ Figures (figures/), in report order:
   grad_cafe_spending.png                 graduate students: cheapest option by yearly cafe spending
 Appendix (figures/appendix/):
   on_campus_cost_per_meal.png/.csv       the required unlimited plan's cost per meal eaten
+The Monte Carlo stability check is separate (slower): scripts/run_stability.py.
 The guest-rate results are archived in figures/appendix/guest_rate_model/ (git tag guest-rate-model).
 """
 
@@ -38,6 +41,7 @@ from model import load_prices  # noqa: E402
 from monte_carlo import draw_assumptions  # noqa: E402
 from on_campus import FULL_WEEK, plot_on_campus, resident_cost_per_meal  # noqa: E402
 from restaurants import summary_rows  # noqa: E402
+from stability import plot_meal_type_map  # noqa: E402
 from outside_food import (  # noqa: E402
     plot_extra_cost,
     plot_lead,
@@ -69,6 +73,7 @@ def main():
     save(plot_lead(prices), OUT / "spending_at_three_prices.png")
     save(plot_main_map(prices), OUT / "decision_map_undergrad_offcampus.png")
     write_grid_csv(prices, OUT / "decision_map_undergrad_offcampus.csv")
+    save(plot_meal_type_map(prices), OUT / "decision_map_meal_type_prices.png")
     save(plot_spending(prices), OUT / "spending_by_option.png")
     save(plot_extra_cost(prices), OUT / "extra_cost_by_option.png")
     save(plot_swipe_cost(prices), OUT / "swipe_cost.png")

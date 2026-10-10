@@ -51,16 +51,36 @@ def test_rejects_unknown_values(tmp_path):
 
 
 def test_real_sample():
-    # 30 meals: 20 counter, 10 sit-down; 9 breakfasts, 10 lunches, 11 dinners.
+    # 32 meals: 20 counter, 12 sit-down; 9 breakfasts, 10 lunches, 2 brunches, 11 dinners.
     meals = load_meals()
-    assert len(meals) == 30
+    assert len(meals) == 32
     s = averages(meals, "service")
-    assert (s["counter"]["n"], s["sit-down"]["n"]) == (20, 10)
-    assert {k: v["n"] for k, v in averages(meals, "meal_type").items()} == {"breakfast": 9, "lunch": 10, "dinner": 11}
-    # Counter menu prices: breakfast 60.49 + lunch 109.99 + dinner 66.09 = 236.57 -> x 1.07 / 20; sit-down sum to 197.64 -> x 1.25 / 10.
+    assert (s["counter"]["n"], s["sit-down"]["n"]) == (20, 12)
+    assert {k: v["n"] for k, v in averages(meals, "meal_type").items()} == {
+        "breakfast": 9, "lunch": 10, "brunch": 2, "dinner": 11}
+    # Counter menu prices: breakfast 60.49 + lunch 109.99 + dinner 66.09 = 236.57 -> x 1.07 / 20.
+    # Sit-down: 197.64 + brunches 17 + 19 = 233.64 -> x 1.25 / 12.
     assert sum(float(m["menu_price"]) for m in meals if m["service"] == "counter") == pytest.approx(236.57)
     assert average_price("counter") == pytest.approx(236.57 * 1.07 / 20)
-    assert average_price("sit-down") == pytest.approx(197.64 * 1.25 / 10)
+    assert average_price("sit-down") == pytest.approx(233.64 * 1.25 / 12)
+
+
+def test_meal_type_prices():
+    from restaurants import meal_type_prices
+
+    sit = meal_type_prices("sit-down")
+    assert sit["brunch"] == pytest.approx((17 + 19) / 2 * 1.25)  # Russell House, Alden & Harlow
+    assert sit["lunch"] == pytest.approx((18 + 26) / 2 * 1.25)   # Friendly Toast, Toscano
+    counter = meal_type_prices("counter")
+    assert counter["brunch"] == counter["lunch"]  # no counter brunches: lunch is the fallback
+    assert counter["breakfast"] == pytest.approx(60.49 * 1.07 / 6)
+    # Tip 20% on the price with tax: average sit-down lunch menu price 22 x 1.07 x 1.20.
+    assert meal_type_prices("sit-down", tip=0.20, tip_on_tax=True)["lunch"] == pytest.approx(22 * 1.07 * 1.20)
+
+
+def test_tip_on_tax():
+    assert out_the_door(20, "sit-down", tip=0.18, tip_on_tax=True) == pytest.approx(20 * 1.07 * 1.18)
+    assert out_the_door(20, "counter", tip=0.30, tip_on_tax=True) == pytest.approx(21.40)  # no tip at the counter
 
 
 def test_types_and_log_tables_in_report():

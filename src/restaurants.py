@@ -3,7 +3,12 @@ data/hand_collected/restaurant_meals.csv (README in that folder).
 
 Out-the-door price = menu price x (1 + 7% Cambridge meals tax + 18% tip for sit-down meals).
 The tip is figured on the pre-tax menu price, so a sit-down meal costs 1.25 x the menu price and
-a counter meal 1.07 x. Averages are plain means over the meals in each group.
+a counter meal 1.07 x. Averages are plain means over the meals in each group. (The Monte Carlo
+check varies the tip from 15% to 22% and figures it on the pre- or after-tax price.)
+
+Meal types follow HUDS's meal periods: breakfast, lunch, brunch (weekend) and dinner.
+meal_type_prices() gives one price per meal type for counter or sit-down eaters; a group with no
+meals in the sample (counter brunch) falls back to lunch.
 
 price_source "news article" (one row: Daily Provisions, from an Aug 2025 Boston Globe article)
 is accepted but is second-hand and older than the other rows; `exclude_sources` lets a caller
@@ -19,19 +24,24 @@ DEFAULT_CSV = Path(__file__).resolve().parent.parent / "data" / "hand_collected"
 MEALS_TAX = 0.07
 SIT_DOWN_TIP = 0.18
 SERVICES = ("counter", "sit-down")
-MEAL_TYPES = ("breakfast", "lunch", "dinner")
+MEAL_TYPES = ("breakfast", "lunch", "brunch", "dinner")
+FALLBACK = {"brunch": "lunch"}  # meal type used when a service has no meals of this type
 PRICE_SOURCES = ("in person", "restaurant website", "menu photo", "news article")
 RESTAURANT_TYPES = ("coffee chain", "café", "bakery-café", "Mexican", "burgers", "pizza", "salad/bowls", "Mediterranean",
                     "Greek", "Vietnamese", "grilled cheese", "healthy bowls", "diner", "pub", "tavern", "New American",
                     "Italian")
 
 
-def out_the_door(menu_price: float, service: str) -> float:
+def out_the_door(menu_price: float, service: str, tip: float = SIT_DOWN_TIP, tip_on_tax: bool = False) -> float:
+    """Menu price plus 7% tax, plus `tip` for sit-down meals, figured on the pre-tax price (or on
+    the price with tax if tip_on_tax)."""
     if service not in SERVICES:
         raise ValueError(f"service must be one of {SERVICES}, got {service!r}")
     if menu_price < 0:
         raise ValueError(f"negative menu price {menu_price}")
-    return menu_price * (1 + MEALS_TAX + (SIT_DOWN_TIP if service == "sit-down" else 0.0))
+    if service == "counter":
+        return menu_price * (1 + MEALS_TAX)
+    return menu_price * ((1 + MEALS_TAX) * (1 + tip) if tip_on_tax else 1 + MEALS_TAX + tip)
 
 
 def load_meals(csv_path: Path = DEFAULT_CSV, exclude_sources: Iterable[str] = ()) -> List[dict]:
@@ -87,6 +97,21 @@ def summary_rows(meals: Optional[List[dict]] = None) -> List[dict]:
                                                      and m["price_source"] != "news article"]) for s in SERVICES]
     return [{"group": g, **{k: round(v, 2) for k, v in _summary([m["price"] for m in ms]).items()}}
             for g, ms in groups if ms]
+
+
+def meal_type_prices(service: str, meals: Optional[List[dict]] = None, tip: float = SIT_DOWN_TIP,
+                     tip_on_tax: bool = False) -> Dict[str, float]:
+    """{meal type: mean out-the-door price} for counter or sit-down meals, every HUDS meal type
+    filled (FALLBACK for types with no meals of this service)."""
+    meals = load_meals() if meals is None else meals
+    out = {}
+    for t in MEAL_TYPES:
+        group = [m for m in meals if m["service"] == service and m["meal_type"] == t]
+        if group:
+            out[t] = statistics.mean(out_the_door(float(m["menu_price"]), service, tip, tip_on_tax) for m in group)
+    for t, fallback in FALLBACK.items():
+        out.setdefault(t, out[fallback])
+    return {t: out[t] for t in MEAL_TYPES}
 
 
 def log_table(service: str, meals: Optional[List[dict]] = None) -> str:

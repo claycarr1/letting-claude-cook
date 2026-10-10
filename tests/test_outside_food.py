@@ -68,3 +68,30 @@ def test_plans_never_win_below_their_swipe_cost():
 def test_input_checks():
     with pytest.raises(ValueError):
         year_food_spending(22, 10, PRICES)
+
+
+MEAL_PRICES = {"breakfast": 4, "lunch": 10, "brunch": 12, "dinner": 8}
+
+
+def test_meal_type_prices_equal_flat_when_equal():
+    flat = year_food_spending(9, 11, PRICES)
+    by_type = year_food_spending(9, {m: 11 for m in MEAL_PRICES}, PRICES)
+    assert by_type == pytest.approx(flat)
+
+
+def test_meal_type_prices_by_hand():
+    # Nothing at HUDS: no plan pays 213/7 weeks x (7x4 + 5x10 + 2x12 + 7x8 = 158) a week.
+    assert year_food_spending(21, MEAL_PRICES, PRICES)["no_plan"] == pytest.approx(213 / 7 * 158)
+    # Everything at HUDS on the 21-meal plan: 8812, plus the 4 away weekends' 2 breakfasts,
+    # 2 brunches and 2 dinners eaten elsewhere: 4 x (8 + 24 + 16) = 192.
+    assert year_food_spending(0, MEAL_PRICES, PRICES)["nr21"] == pytest.approx(8812 + 192)
+
+
+def test_which_meals_are_skipped_matters_with_meal_type_prices():
+    # 5-meal plan, 14 HUDS meals a week: skipping lunches (the $10-12 meals) leaves the plan's
+    # swipes on dinners; skipping dinners leaves them on lunches. Same plan, different bills.
+    lunches = year_food_spending(7, MEAL_PRICES, PRICES, meals_out_from="lunches_first")["nr5"]
+    dinners = year_food_spending(7, MEAL_PRICES, PRICES, meals_out_from="dinners_first")["nr5"]
+    assert lunches != pytest.approx(dinners)
+    with pytest.raises(ValueError):
+        year_food_spending(7, {"lunch": 10}, PRICES)

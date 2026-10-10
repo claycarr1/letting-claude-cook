@@ -10,7 +10,7 @@
 
 **The on-campus unlimited plan is the 21-meal plan in this model.** It costs $8,942 a year less $130 of BoardPlus = $8,812, exactly two terms of the 21-meal plan ($4,406 × 2), and with one swipe per meal period, 21 swipes a week cover every meal HUDS serves, the same as unlimited. `tests/test_on_campus.py` checks that the two cost the same for every eating pattern, outside price and first-week rule. (If BoardPlus goes unspent, the on-campus plan costs $130 a year more.) So the 21-meal plan is labelled "21-meal plan (= on-campus unlimited plan)" throughout.
 
-**Setup.** Everyone eats 21 meals a week; only where they eat changes. A meal not eaten at HUDS costs an *outside price*, a blend of cooking and eating out. It is a variable from $3 to $40 on the charts. Three reference prices are marked: **cooking, $5.15 a meal** (USDA moderate-cost food plan for a student cooking alone, adjusted to Northeast prices; see "Cooking cost" below), **cheap takeout, $12.66** and **sit-down, $24.70** (average out-the-door price of 20 counter-service and 10 sit-down meals around Harvard Square and Central Square; see "Restaurant prices" below). Off-campus undergraduate, 2 weekends away per term, 2026–27 HUDS prices and calendar. Meals eaten at HUDS are cut evenly across meal types. Spending per semester is half the academic year's spending.
+**Setup.** Everyone eats 21 meals a week; only where they eat changes. A meal not eaten at HUDS costs an *outside price*, a blend of cooking and eating out. It is a variable from $3 to $40 on the charts. Three reference prices are marked: **cooking, $5.15 a meal** (USDA moderate-cost food plan for a student cooking alone, adjusted to Northeast prices; see "Cooking cost" below), **cheap takeout, $12.66** and **sit-down, $24.34** (average out-the-door price of 20 counter-service and 12 sit-down meals around Harvard Square and Central Square; see "Restaurant prices" below). Off-campus undergraduate, 2 weekends away per term, 2026–27 HUDS prices and calendar. Meals eaten at HUDS are cut evenly across meal types. Spending per semester is half the academic year's spending.
 
 **First results:**
 
@@ -19,22 +19,23 @@
 - **The 21-meal plan (= on-campus plan)** wins for heavy HUDS users: from $14.33 a meal for someone who eats every meal there, rising to about $20 for someone who eats 15 a week.
 - **The 10-meal plan now wins somewhere**, unlike under guest rates: for students who eat about 9–14 HUDS meals a week, from $20.12 a meal at 14 HUDS meals a week ($20.79 at 12, $21.64 at 10).
 - **The 5-meal plan** wins for about 3–13 HUDS meals a week, from $20.22 a meal.
-- **At the marker prices:** at $5.15 (cooking) and $12.66 (cheap takeout), no plan is cheapest for everyone: both are below the cheapest swipe ($13.79). At $24.70 (sit-down), the 21-meal plan (= on-campus plan) is cheapest for 15+ HUDS meals a week, the 10-meal plan for 10–14, the 5-meal plan for 5–9, and no plan for 0–4.
-- **Cheap takeout is close to the line.** The counter average ($12.66) is only $1.67 below the $14.33 at which the 21-meal plan starts to win, and the counter median is $13.54. Counter lunches average $14.71, above that line, so separate breakfast/lunch/dinner prices could change the answer for heavy HUDS users who eat lunch out.
+- **At the marker prices:** at $5.15 (cooking) and $12.66 (cheap takeout), no plan is cheapest for everyone: both are below the cheapest swipe ($13.79). At $24.34 (sit-down), the 21-meal plan (= on-campus plan) is cheapest for 15+ HUDS meals a week, the 10-meal plan for 10–14, the 5-meal plan for 5–9, and no plan for 0–4.
+- **Cheap takeout is close to the line.** The counter average ($12.66) is only $1.67 below the $14.33 at which the 21-meal plan starts to win, and the counter median is $13.54. Counter lunches average $14.71, above that line. **With separate breakfast, lunch, brunch and dinner prices it still doesn't flip:** counter breakfasts ($10.79) and dinners ($11.79) are cheap, and a student's week has 7 of each against 5 lunches, so no plan stays cheapest for every counter eater (`figures/decision_map_meal_type_prices.png`), in all 2,000 Monte Carlo runs.
 - **Picking the wrong option** costs up to $7,894 a semester (the 21-meal / on-campus plan for someone who eats nothing at HUDS when meals elsewhere cost $40), but little near the borders between options.
-- **Which meal you skip no longer matters** with a single outside price: every swipe saves the same amount. It will matter again if breakfast, lunch and dinner get separate outside prices from the restaurant data.
+- **Which meal you skip** doesn't matter with a single outside price (every swipe saves the same amount). With meal-type prices it does, and it is the assumption that moves the Monte Carlo answer most, though only by about 4 percentage points in the uncertain squares.
+- **The answer is stable:** across 2,000 Monte Carlo runs, 88% of the stability map is solid (the same answer in 95%+ of runs). For counter eaters, every square is solid: no plan. For sit-down eaters, the toss-ups lie along the borders between options, mostly no plan vs the 5-meal plan. See "Sensitivity check" below.
 
 ### Figures
 
 All figures follow the same rules (`src/style.py`): text at least 12 pt, a plain-language takeaway as the title, and setup details in these captions rather than in the image. Fixed colours: no plan blue, 5-meal aqua, 10-meal yellow, 21-meal orange. Yellow and orange are hard to tell apart even with normal colour vision, so every chart also labels the options directly and draws borders between regions. On every off-campus chart the y-axis (or x-axis of the lead chart) is **meals you'd eat at HUDS per week if you had swipes**, and the price axis is the **average cost of a meal not eaten at HUDS, cooking and eating out mixed**. Off-campus undergraduate, 2 weekends away per term, 2026–27 HUDS prices.
 
-1. **`figures/spending_at_three_prices.png`** (lead chart) — Food spending per semester against meals you'd eat at HUDS per week, one line per option, at three outside prices: mostly cooking ($5.15 a meal), cheap takeout ($12.66, the average of 20 counter-service meals) and sit-down places ($24.70, the average of 10 sit-down meals, with 18% tip). Same y-axis on all three panels. No plan can't eat at HUDS, and a plan can't cover more meals than its swipes; extra meals are eaten out or cooked at the panel's price, which is why those lines go flat.
+1. **`figures/spending_at_three_prices.png`** (lead chart) — Food spending per semester against meals you'd eat at HUDS per week, one line per option, at three outside prices: mostly cooking ($5.15 a meal), cheap takeout ($12.66, the average of 20 counter-service meals) and sit-down places ($24.34, the average of 12 sit-down meals, with 18% tip). Same y-axis on all three panels. No plan can't eat at HUDS, and a plan can't cover more meals than its swipes; extra meals are eaten out or cooked at the panel's price, which is why those lines go flat.
 2. **`figures/decision_map_undergrad_offcampus.png`** (+ `.csv`) — The decision map: the cheapest option by the average cost of a meal not eaten at HUDS (x-axis) and meals you'd eat at HUDS per week (y-axis). Find your price and your HUDS meals and read off the colour. The labels under the x-axis show where cooking, cheap takeout and sit-down meals fall.
 3. **`figures/spending_by_option.png`** — Total food spending per semester under each option (one panel each) in $1,000 bands on the same colour scale across panels, so nearby differences show up, with labelled contour lines every $2,000. With no plan, spending depends only on the outside price; with a plan, it also falls as you eat more HUDS meals, until the swipes run out (dashed line at 5 and 10 meals a week on the 5- and 10-meal panels; in weeks with a weekend away it comes slightly later, because fewer HUDS meals are eaten).
 4. **`figures/extra_cost_by_option.png`** — How much more each option costs per semester than the cheapest option for that student: $0 (the cheapest; outlined and labelled "Cheapest here"), under $250, $250–1,000, $1,000–4,000, $4,000+. Pale means the best option for that student, not that it's cheap; for total spending, see the spending chart. No plan gets darker going up not because it costs more, but because the plans get cheaper for students who'd eat more at HUDS. Dashed lines on the 5- and 10-meal panels mark where the swipes run out.
 5. **`figures/swipe_cost.png`** — What one swipe costs on each plan if every swipe is used ($20.22 on the 5-meal plan, $20.11 on the 10-meal, $13.79 on the 21-meal / on-campus plan): the yearly plan price divided by the swipes available over 30.4 weeks. Dashed lines carry each swipe cost across the three outside prices: cooking ($5.15), cheap takeout ($12.66) and sit-down ($24.70). A plan pays off only if a meal eaten out or cooked would cost more than its swipe.
 
-The on-campus chart is in "On-campus students" below; the graduate-student chart is in "Graduate students" near the end.
+The Monte Carlo check is in "Sensitivity check" below; the on-campus chart is in "On-campus students"; the graduate-student chart is in "Graduate students" near the end.
 
 ## On-campus students
 
@@ -43,10 +44,25 @@ The on-campus chart is in "On-campus students" below; the graduate-student chart
 - **The required plan is the best option only for heavy HUDS users when meals elsewhere are expensive**: from $14.33 a meal for someone who eats all 21 meals at HUDS, and only for 13+ HUDS meals a week anywhere up to $40.
 - **At the cooking price ($5.15)** it costs $2,823 a semester more than cooking everything for someone who would eat all 21 meals at HUDS, and $3,350 more at 14 HUDS meals a week. (Most on-campus students can't cook every meal; see Limitations.)
 - **At cheap takeout ($12.66)** it costs $514 a semester more than no plan at 21 HUDS meals a week and $1,811 more at 14.
-- **At sit-down prices ($24.70)** it is the best option for 15+ HUDS meals a week; at 14 a week the 10-meal plan would be $40 a semester cheaper, and at 10 a week $1,346 cheaper.
+- **At sit-down prices ($24.34)** it is the best option for 15+ HUDS meals a week; at 14 a week the 10-meal plan would be $60 a semester cheaper, and at 10 a week $1,346 cheaper.
 
 The supporting chart `figures/appendix/on_campus_cost_per_meal.png` shows the plan's cost per meal eaten (below).
 
+
+## Sensitivity check (Monte Carlo, current model)
+
+`scripts/run_stability.py` (`src/stability.py`) redraws the off-campus decision 2,000 times (seed 2026). It uses a new map whose axes are habits a student knows, because the outside price itself is drawn at random: **x = the share of meals not eaten at HUDS that you cook** (0–100%, the rest eaten out), **y = HUDS meals per week**, with one panel for students who eat out at **counter** places and one for **sit-down** places. In each square, every meal type gets its own outside price: cooking share × cooking cost + (1 − share) × that service's average for the meal type.
+
+Each run draws: weeks per term (14.5–16, fall and spring separately); full or partial first-week swipes; which HUDS meals are skipped (spread out, dinners first or lunches first); the sit-down tip (15–22%), on the pre- or after-tax price; the cooking cost ($4.01–$6.42); and the restaurant prices, by resampling each service × meal-type group of the sample with replacement (a bootstrap of the averages). The main answer in each square is the deterministic map (`figures/decision_map_meal_type_prices.png`): calendar weeks, partial first week, spread out, 18% pre-tax tip, $5.15 cooking, sample averages.
+
+- **`figures/decision_map_meal_type_prices.png`** — The cheapest option with breakfast, lunch, brunch and dinner priced separately, by cooking share and HUDS meals per week. Counter eaters: no plan everywhere. Sit-down eaters: a plan wins only when they cook 50% or less of their non-HUDS meals — the 21-meal / on-campus plan for 15+ HUDS meals a week, the 10-meal plan around 10–14, the 5-meal plan around 5–9.
+- **`figures/stability_map.png`** — The same map, each square faded by how often its answer holds across the runs: solid (95%+ of runs), mostly (80–95%), toss-up (under 80%, pale). Black lines are the borders of the main answer.
+  - **88% of the 924 squares are solid**, 4% mostly and 8% toss-ups; on average a square keeps its answer in 96.6% of runs.
+  - **Counter eaters: all 462 squares solid** — no plan in every square, in every run. The close takeout case does not flip.
+  - **Sit-down eaters: 351 of 462 squares solid**, 73 toss-ups. The toss-ups lie along the borders, mostly **no plan vs the 5-meal plan** (45 squares) and **5- vs 10-meal plan** (15), in squares with 0–55% cooking.
+- **`figures/stability_assumptions.png`** — Which assumption moves the answer most, measured in the 111 squares that aren't solid: how much more often the main answer holds under one setting than another. **Which HUDS meals are skipped** moves it most (4.3 percentage points), then restaurant sample (resampled) (2.2) and cooking cost (1.6); first-week swipes, weeks per term and the tip each move it by under 1 point. No single assumption dominates: the uncertainty comes from the combination, and mostly from how close those squares are to a border.
+- Data: `figures/stability_map.csv` (every square), `figures/stability_draws.csv` (every run's assumptions), `figures/stability_summary.json`.
+- **Small groups:** sit-down lunch and brunch have 2 meals each and sit-down breakfast 3, so their resampled averages swing widely, which likely adds to the sit-down toss-ups.
 
 ## Note: why there is no single map of every plan
 
@@ -80,7 +96,9 @@ Weeks of dining come from the non-resident plan's term dates on the HUDS meal-pl
 Resident undergraduates get $65 of BoardPlus per semester ($130 per year), spendable at HUDS cafes, House grilles and on guest meals; it can't be topped up and expires at the end of the school year. **The $65 is listed on the HUDS FAQ alongside 2025–26 dates; it is assumed to still apply in 2026–27.** Results credit it at face value (treated as fully spent), so the resident plan costs $4,471 − $65 = $4,406 per term. The on-campus chart also shows the plan with BoardPlus unspent ($4,471 per term); the difference is about 1.5%.
 
 ### Monte Carlo odds: 50/50
-The sensitivity check (below) treats three yes/no assumptions as coin flips with **50/50 odds**: whether the short first week gives full or partial swipes, whether meals eaten elsewhere come mostly from dinners or are spread across lunch, brunch and dinner (the model's third setting, lunches first, is not part of the Monte Carlo check), and whether breakfast is priced at the House ($10.84) or Annenberg/Quincy ($12.90) guest rate. BoardPlus spent or unspent is also 50/50 (it only affects the on-campus chart). Weeks per term are drawn uniformly between 14.5 and 16, separately for fall and spring. **The 50/50 odds are a deliberately neutral choice, not a measurement**; the stability percentages depend on them, and different odds would give different percentages.
+**Current model** (`src/stability.py`): first-week swipes and tip on pre- or after-tax price are 50/50 coin flips; which HUDS meals are skipped (spread out / dinners first / lunches first) is 1/3 each; weeks per term (14.5–16, fall and spring separately), the sit-down tip (15–22%) and the cooking cost ($4.01–$6.42, USDA Thrifty to Liberal) are drawn uniformly; the restaurant prices are a bootstrap (each service × meal-type group resampled with replacement). These odds are neutral choices, not measurements.
+
+**Archived guest-rate model:** the sensitivity check treated three yes/no assumptions as coin flips with **50/50 odds**: whether the short first week gives full or partial swipes, whether meals eaten elsewhere come mostly from dinners or are spread across lunch, brunch and dinner (the model's third setting, lunches first, is not part of the Monte Carlo check), and whether breakfast is priced at the House ($10.84) or Annenberg/Quincy ($12.90) guest rate. BoardPlus spent or unspent is also 50/50 (it only affects the on-campus chart). Weeks per term are drawn uniformly between 14.5 and 16, separately for fall and spring. **The 50/50 odds are a deliberately neutral choice, not a measurement**; the stability percentages depend on them, and different odds would give different percentages.
 
 ### Cooking cost
 The cooking price is computed in `src/cooking.py` from `data/cooking_cost.csv` (written by `scripts/fetch_cooking_cost.py`, which saves the source files in `data/raw/usda/` and `data/raw/bls/`):
@@ -96,21 +114,22 @@ The cooking price is computed in `src/cooking.py` from `data/cooking_cost.csv` (
 | Roommates sharing (4-person) | $3.34 | $3.46 | $4.29 | $5.35 |
 
 ### Restaurant prices
-`data/hand_collected/restaurant_meals.csv`: 30 meals around Harvard Square and Central Square (9 breakfasts, 10 lunches, 11 dinners; 20 counter-service, 10 sit-down), collected 2026-10-09. Rows marked "CC" were checked by the user; rows marked "Claude (web)" were looked up online. `src/restaurants.py` turns each menu price into an out-the-door price: **+7% Cambridge meals tax**, plus an **18% tip for sit-down meals**, figured on the pre-tax menu price (sit-down = 1.25 × menu price, counter = 1.07 ×). Averages are plain means; `figures/restaurant_prices_summary.csv` has every group with n, mean, median, min and max.
+`data/hand_collected/restaurant_meals.csv`: 32 meals around Harvard Square and Central Square (9 breakfasts, 10 lunches, 2 weekend brunches, 11 dinners; 20 counter-service, 12 sit-down), collected 2026-10-09. The two brunches (Russell House Tavern eggs Benedict, Alden & Harlow pancakes) price HUDS weekend brunch for sit-down eaters; there are no counter brunches, so counter eaters' brunch is priced at the counter lunch average. Rows marked "CC" were checked by the user; rows marked "Claude (web)" were looked up online. `src/restaurants.py` turns each menu price into an out-the-door price: **+7% Cambridge meals tax**, plus an **18% tip for sit-down meals**, figured on the pre-tax menu price (sit-down = 1.25 × menu price, counter = 1.07 ×). Averages are plain means; `figures/restaurant_prices_summary.csv` has every group with n, mean, median, min and max.
 
 | Out-the-door price | Meals | Mean | Median |
 |---|---|---|---|
 | **Counter service (cheap takeout marker)** | 20 | **$12.66** | $13.54 |
-| **Sit-down (sit-down marker)** | 10 | **$24.70** | $22.59 |
+| **Sit-down (sit-down marker)** | 12 | **$24.34** | $22.59 |
 | Breakfast (counter and sit-down) | 9 | $14.09 | $11.77 |
 | Lunch | 10 | $17.27 | $15.38 |
+| Brunch (sit-down only) | 2 | $22.50 | $22.50 |
 | Dinner | 11 | $18.25 | $14.55 |
 | Breakfast / lunch / dinner, counter | 6 / 8 / 6 | $10.79 / $14.71 / $11.79 | |
-| Breakfast / lunch / dinner, sit-down | 3 / 2 / 5 | $20.68 / $27.50 / $26.00 | |
+| Breakfast / lunch / brunch / dinner, sit-down | 3 / 2 / 2 / 5 | $20.68 / $27.50 / $22.50 / $26.00 | |
 
-The meal-type averages mix counter and sit-down meals in the sample's proportions, so they depend on how many of each were collected; the charts use the counter and sit-down averages only.
+The meal-type rows that mix counter and sit-down meals depend on how many of each were collected, so the model never uses them. The chart markers use the counter and sit-down averages; the meal-type map and the Monte Carlo use the per-service meal-type averages (bottom two rows).
 
-**`figures/restaurant_meals_vs_swipes.png`** — Every sampled meal as a dot, sorted by real price (7% tax; plus 18% tip for sit-down), circles for counter service and squares for sit-down, with dashed lines at each plan's swipe cost if every swipe is used ($13.79 for the 21-meal / on-campus plan, $20.11 for the 10-meal, $20.22 for the 5-meal). A swipe is the cheaper way to eat any meal above its line: the 21-meal swipe beats 19 of the 30 meals (9 counter, all 10 sit-down); the 5- and 10-meal swipes beat 8, all sit-down.
+**`figures/restaurant_meals_vs_swipes.png`** — Every sampled meal as a dot, sorted by real price (7% tax; plus 18% tip for sit-down), circles for counter service and squares for sit-down, with dashed lines at each plan's swipe cost if every swipe is used ($13.79 for the 21-meal / on-campus plan, $20.11 for the 10-meal, $20.22 for the 5-meal). A swipe is the cheaper way to eat any meal above its line: the 21-meal swipe beats 21 of the 32 meals (9 counter, all 12 sit-down); the 5- and 10-meal swipes beat 10, all sit-down.
 
 #### Restaurant log
 
@@ -141,20 +160,22 @@ Every meal in the sample, cheapest first. "Real price" is what the meal costs ou
 | 19 | CAVA | Mediterranean | lunch | Greek Goddess steak salad | $16.00 | $17.12 |
 | 20 | Tatte Bakery & Cafe | bakery-café | lunch | chicken salad sandwich | $16.80 | $17.98 |
 
-**Sit-down** (10 meals, mean $24.70):
+**Sit-down** (12 meals, mean $24.34):
 
 | # | Restaurant | Type | Meal | Item | Menu price | Real price (with tax and 18% tip) |
 |---|---|---|---|---|---|---|
 | 1 | Veggie Galaxy | diner | breakfast | traditional eggs Benedict | $14.99 | $18.74 |
 | 2 | Mr. Bartley's Burger Cottage | burgers | dinner | Joe Bartley cheeseburger | $16.00 | $20.00 |
 | 3 | The Friendly Toast | diner | breakfast | Friendly Toast Benny | $16.50 | $20.62 |
-| 4 | Grendel's Den | pub | dinner | grass fed beef burger | $18.00 | $22.50 |
-| 5 | The Friendly Toast | diner | lunch | Classic Burger | $18.00 | $22.50 |
-| 6 | Bluestone Lane | café | breakfast | avocado smash | $18.15 | $22.69 |
-| 7 | Alden & Harlow | New American | dinner | Secret Burger | $19.00 | $23.75 |
-| 8 | Russell House Tavern | tavern | dinner | R. House Burger | $19.00 | $23.75 |
-| 9 | Toscano | Italian | lunch | Rigatoni Toscano (lunch menu) | $26.00 | $32.50 |
-| 10 | Toscano | Italian | dinner | Rigatoni Toscano | $32.00 | $40.00 |
+| 4 | Russell House Tavern | tavern | brunch | Classic Eggs Benedict | $17.00 | $21.25 |
+| 5 | Grendel's Den | pub | dinner | grass fed beef burger | $18.00 | $22.50 |
+| 6 | The Friendly Toast | diner | lunch | Classic Burger | $18.00 | $22.50 |
+| 7 | Bluestone Lane | café | breakfast | avocado smash | $18.15 | $22.69 |
+| 8 | Alden & Harlow | New American | dinner | Secret Burger | $19.00 | $23.75 |
+| 9 | Alden & Harlow | New American | brunch | Classic Sourdough Pancakes | $19.00 | $23.75 |
+| 10 | Russell House Tavern | tavern | dinner | R. House Burger | $19.00 | $23.75 |
+| 11 | Toscano | Italian | lunch | Rigatoni Toscano (lunch menu) | $26.00 | $32.50 |
+| 12 | Toscano | Italian | dinner | Rigatoni Toscano | $32.00 | $40.00 |
 
 - **Daily Provisions** (`price_source` "news article", August 2025 Boston Globe) is kept: dropping it moves the counter average from $12.66 to $12.70 and doesn't change the sit-down average.
 - **Joe's Pizza** is the user's in-person estimate for two cheese slices (about $10; slices aren't listed online).
@@ -164,7 +185,7 @@ Every meal in the sample, cheapest first. "Real price" is what the meal costs ou
 - **Cooking counts groceries only**: not the cook's time, kitchen equipment, or food that's bought and wasted. The real cost of cooking is higher than $5.15 a meal, by an amount this project doesn't measure.
 - **The regional adjustment is for the Northeast, from 9 foods**, not for Cambridge or the full USDA basket. The optional local grocery basket (`data/hand_collected/grocery_basket.csv`) would check it.
 - **The USDA low-cost, moderate and liberal plans** are based on 2001–02 food choices updated with price indexes (USDA notes they are being re-evaluated); they describe a nutritious diet, not necessarily what students buy.
-- **The restaurant sample is small** (30 meals; only 2 sit-down lunches and 3 sit-down breakfasts), and the averages are means of what a student might typically order, not a random sample of meals. 22 of the 30 prices were looked up online by Claude ("Claude (web)") and 8 checked by the user ("CC"). Tatte's two prices come from its online ordering page and may be about 10–15% above the counter price, which would push the counter average up slightly. Several "Claude (web)" rows note that the type of service (counter or table) was likely but not confirmed. One price (Daily Provisions) is from an August 2025 news article.
+- **The restaurant sample is small** (32 meals; only 2 sit-down lunches, 2 sit-down brunches and 3 sit-down breakfasts, and no counter brunches), and the averages are means of what a student might typically order, not a random sample of meals. 24 of the 32 prices were looked up online by Claude ("Claude (web)") and 8 checked by the user ("CC"). Tatte's two prices come from its online ordering page and may be about 10–15% above the counter price, which would push the counter average up slightly. Several "Claude (web)" rows note that the type of service (counter or table) was likely but not confirmed. One price (Daily Provisions) is from an August 2025 news article.
 - **Most on-campus students have limited kitchen access**, so the cooking price is less realistic for them: for on-campus students the takeout and sit-down prices are the more relevant comparisons.
 
 ## Graduate students

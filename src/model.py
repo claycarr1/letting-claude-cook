@@ -41,7 +41,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 DEFAULT_CSV = Path(__file__).resolve().parent.parent / "data" / "huds_prices.csv"
 MEAL_TYPES = ("breakfast", "lunch", "brunch", "dinner")
@@ -139,10 +139,21 @@ def flat_prices(price: float) -> Dict[str, float]:
     return {m: float(price) for m in MEAL_TYPES}
 
 
-def cost_outside(pattern: WeeklyPattern, weeks: float, outside_price: float) -> TermCost:
-    """No plan: every meal in the pattern is eaten out or cooked at `outside_price` per meal."""
+def outside_prices_for(outside_price: Union[float, Dict[str, float]]) -> Dict[str, float]:
+    """{meal type: price} from one price for every meal or a dict with a price per meal type."""
+    if isinstance(outside_price, dict):
+        missing = set(MEAL_TYPES) - set(outside_price)
+        if missing or any(v < 0 for v in outside_price.values()):
+            raise ValueError(f"outside prices need a non-negative price for each of {MEAL_TYPES}")
+        return {m: float(outside_price[m]) for m in MEAL_TYPES}
+    return flat_prices(outside_price)
+
+
+def cost_outside(pattern: WeeklyPattern, weeks: float, outside_price: Union[float, Dict[str, float]]) -> TermCost:
+    """No plan: every meal in the pattern is eaten out or cooked at `outside_price` per meal (one
+    price, or a price per meal type)."""
     _check_weeks(weeks)
-    total = _list_price_per_week(pattern, flat_prices(outside_price)) * weeks
+    total = _list_price_per_week(pattern, outside_prices_for(outside_price)) * weeks
     return _result("no plan (eat out or cook)", pattern.total * weeks, 0.0, total, total)
 
 

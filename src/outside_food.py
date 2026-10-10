@@ -10,13 +10,13 @@ year_food_spending() gives the whole food bill per academic year; per_semester()
 Every cost comes from src/model.py via src/decision_map.annual_costs.
 """
 
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 from charts import habits_for_meals
 from cooking import cooking_cost_per_meal
 from restaurants import average_price
 from decision_map import GROUPS, NR21_NAME, PLAN_COLORS, PLAN_LABELS, SHORT_LABELS, annual_costs, habits_to_patterns
-from model import MAX_PER_WEEK, Prices, load_term_weeks
+from model import MAX_PER_WEEK, Prices, load_term_weeks, outside_prices_for
 
 FULL_WEEK = sum(MAX_PER_WEEK.values())  # 21 meals a week, every week
 GROUP = "undergrad_offcampus_outside"
@@ -32,27 +32,44 @@ PRICE_MARKERS = [("Cooking", cooking_cost_per_meal()), ("Cheap takeout", average
 PLACEHOLDER_MARKERS = set()  # names of markers that are still placeholders (shown as "~$13?")
 
 
-def hud_meals_per_year(missed: float, weekends_away: int = WEEKENDS_AWAY,
-                       term_weeks: Optional[Dict[str, float]] = None) -> float:
-    """HUDS meals the student would eat in a year (before any swipe limit)."""
+def hud_meals_by_type(missed: float, weekends_away: int = WEEKENDS_AWAY,
+                      term_weeks: Optional[Dict[str, float]] = None,
+                      meals_out_from: str = "spread") -> Dict[str, float]:
+    """{meal type: HUDS meals the student would eat in a year} (before any swipe limit).
+    Breakfasts are cut in proportion; lunches, brunches and dinners as `meals_out_from` says."""
     term_weeks = term_weeks or load_term_weeks()
     mo, bs = habits_for_meals(FULL_WEEK - missed)
-    normal, away = habits_to_patterns(mo, bs)
-    return sum(normal.total * (w - weekends_away) + away.total * weekends_away for w in term_weeks.values())
+    normal, away = habits_to_patterns(mo, bs, meals_out_from)
+    n, a = normal.counts(), away.counts()
+    return {m: sum(n[m] * (w - weekends_away) + a[m] * weekends_away for w in term_weeks.values())
+            for m in MAX_PER_WEEK}
 
 
-def year_food_spending(missed: float, outside_price: float, prices: Prices, weekends_away: int = WEEKENDS_AWAY,
-                       plans: Sequence[str] = PLANS) -> Dict[str, float]:
+def hud_meals_per_year(missed: float, weekends_away: int = WEEKENDS_AWAY,
+                       term_weeks: Optional[Dict[str, float]] = None, meals_out_from: str = "spread") -> float:
+    """HUDS meals the student would eat in a year (before any swipe limit)."""
+    return sum(hud_meals_by_type(missed, weekends_away, term_weeks, meals_out_from).values())
+
+
+def year_food_spending(missed: float, outside_price: Union[float, Dict[str, float]], prices: Prices,
+                       weekends_away: int = WEEKENDS_AWAY, plans: Sequence[str] = PLANS,
+                       term_weeks: Optional[Dict[str, float]] = None, meals_out_from: str = "spread",
+                       full_first_week_swipes: bool = False) -> Dict[str, float]:
     """Total food spending per academic year under each option, for a student who misses `missed`
-    HUDS meals a week (every meal type cut evenly) and pays `outside_price` for each meal not
-    eaten at HUDS."""
+    HUDS meals a week and pays `outside_price` for each meal not eaten at HUDS: one price, or
+    {meal type: price} (breakfast, lunch, brunch, dinner)."""
     if not 0 <= missed <= FULL_WEEK:
         raise ValueError(f"missed must be 0..{FULL_WEEK}")
+    term_weeks = term_weeks or load_term_weeks()
+    price = outside_prices_for(outside_price)
     mo, bs = habits_for_meals(FULL_WEEK - missed)
-    hud_costs = annual_costs(mo, bs, weekends_away, prices, list(plans), outside_price=outside_price)
+    hud_costs = annual_costs(mo, bs, weekends_away, prices, list(plans), term_weeks=term_weeks,
+                             meals_out_from=meals_out_from, full_first_week_swipes=full_first_week_swipes,
+                             outside_price=price)
     # Meals eaten elsewhere whatever the option: the ones missed, plus weekend meals away.
-    weeks = sum(load_term_weeks().values())
-    always_elsewhere = (FULL_WEEK * weeks - hud_meals_per_year(missed, weekends_away)) * outside_price
+    weeks = sum(term_weeks.values())
+    hud = hud_meals_by_type(missed, weekends_away, term_weeks, meals_out_from)
+    always_elsewhere = sum((MAX_PER_WEEK[m] * weeks - hud[m]) * price[m] for m in MAX_PER_WEEK)
     return {p: hud_costs[p] + always_elsewhere for p in plans}
 
 
