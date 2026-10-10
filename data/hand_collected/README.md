@@ -16,9 +16,9 @@ Aim for a spread: roughly 10 breakfast, 10 lunch and 10 dinner items, from cheap
 | `item` | The dish, e.g. "chicken burrito bowl" |
 | `menu_price` | Menu price in dollars, **before** tax and tip, e.g. `13.95` (tax and tip are added in code, so the same rule applies to every row) |
 | `includes_drink` | `yes` or `no` |
-| `price_source` | `in person`, `restaurant website`, or `menu photo` (avoid delivery apps: their prices are marked up) |
+| `price_source` | `in person`, `restaurant website`, `menu photo`, or `news article` (avoid delivery apps: their prices are marked up). `news article` is accepted but second-hand and may be out of date; `figures/restaurant_prices_summary.csv` shows the averages without those rows too |
 | `date_checked` | `YYYY-MM-DD` |
-| `collected_by` | Your initials |
+| `collected_by` | Your initials, or `Claude (web)` for prices Claude looked up online |
 | `notes` | Anything odd: lunch special, student discount, portion size |
 
 Example row (don't copy into the file):

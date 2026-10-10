@@ -14,6 +14,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from charts import habits_for_meals
 from cooking import cooking_cost_per_meal
+from restaurants import average_price
 from decision_map import GROUPS, NR21_NAME, PLAN_COLORS, PLAN_LABELS, SHORT_LABELS, annual_costs, habits_to_patterns
 from model import MAX_PER_WEEK, Prices, load_term_weeks
 
@@ -23,11 +24,12 @@ PLANS = GROUPS[GROUP]  # no_plan, nr5, nr10, nr21
 WEEKENDS_AWAY = 2
 PRICE_RANGE = (3.0, 40.0)
 
-# Chart markers. Cooking is the USDA moderate-cost plan for a student cooking alone, adjusted to
-# Northeast prices (src/cooking.py). Cheap takeout and sit-down are PLACEHOLDERS -- not data --
-# until the hand-collected restaurant prices are in; replace them with the collected values.
-PRICE_MARKERS = [("Cooking", cooking_cost_per_meal()), ("Cheap takeout", 13.0), ("Sit-down", 30.0)]
-PLACEHOLDER_MARKERS = {"Cheap takeout", "Sit-down"}
+# Chart markers, all from data. Cooking: USDA moderate-cost plan for a student cooking alone,
+# adjusted to Northeast prices (src/cooking.py). Cheap takeout and sit-down: mean out-the-door
+# price of the hand-collected counter-service and sit-down meals (src/restaurants.py).
+PRICE_MARKERS = [("Cooking", cooking_cost_per_meal()), ("Cheap takeout", average_price("counter")),
+                 ("Sit-down", average_price("sit-down"))]
+PLACEHOLDER_MARKERS = set()  # names of markers that are still placeholders (shown as "~$13?")
 
 
 def hud_meals_per_year(missed: float, weekends_away: int = WEEKENDS_AWAY,

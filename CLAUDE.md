@@ -2,7 +2,7 @@
 
 This file is the source of truth for the project. Read it fully before making changes. Ask the user before deviating from any decision below. This REPLACES an earlier brief about a restaurant recommender app; that project is cancelled.
 
-**Start here in a new session:** read "Current status" and "Next steps" at the end. Last updated 2026-10-09 (on-campus back in scope; resident plan = 21-meal plan).
+**Start here in a new session:** read "Current status" and "Next steps" at the end. Last updated 2026-10-09 (real restaurant prices in the model).
 
 ## Assignment context
 
@@ -48,7 +48,7 @@ Pages to fetch:
 
 ## Method
 
-1. **Data collection:** fetch and parse the HUDS pages and the official board fee; record values with source URLs and fetch dates in `data/`. **Done.** Cooking cost: done (2026-10-09). Cambridge restaurant prices: waiting on the user's sample.
+1. **Data collection:** fetch and parse the HUDS pages and the official board fee; record values with source URLs and fetch dates in `data/`. **Done.** Cooking cost: done (2026-10-09). Restaurant prices: done (2026-10-09, `src/restaurants.py`).
 2. **Deterministic model:** cost per meal eaten for each plan as a function of meals eaten per week by meal type, weeks on campus, and forfeiture rules. Pure, unit-tested functions. **Done**, including the 2026-10-08 change to outside prices.
 3. **Monte Carlo simulation (secondary):** show how sensitive the decision map is to uncertain assumptions — not the headline result. It must vary **weeks per term from about 14.5 to 16** (fall and spring drawn separately), full vs partial first-week swipes, and on the current model the outside price and cooking share. Yes/no assumptions are 50/50 coin flips. **The existing Monte Carlo is on the superseded guest-rate model and must be rebuilt.**
 4. **Decision map (main output):** see "Decision map" below. Current version: cheapest option by outside price × meals eaten at HUDS per week, led by a simpler three-price line chart.
@@ -65,10 +65,10 @@ The main output is a **decision map**: a plot where a student locates themselves
 3. **Spending by option** (`figures/spending_by_option.png`, `plot_spending`; was Draft B): 2×2 grid, one panel per option, colour = total food spending per semester in **$1,000 bands** (user's choice 2026-10-09, so nearby differences show), same scale across panels, labelled contour lines every $2,000 (labels kept off the swipe lines), colourbar on the right.
 4. **Extra cost by option** (`figures/extra_cost_by_option.png`, `plot_extra_cost`; was Draft C): 2×2 grid, colour = how much more than the cheapest option per semester in 5 bands ($0 (cheapest), under $250, $250–1,000, $1,000–4,000, $4,000+); each panel outlines and labels its "Cheapest here" region.
 - On both 2×2 charts, the 5- and 10-meal panels have a dashed line at 5 / 10 meals labelled **"Swipes run out here"**.
-5. **Swipe cost** (`figures/swipe_cost.png`, `charts.plot_swipe_cost`): one swipe on each plan next to the three outside prices (Cooking, Cheap takeout, Sit-down; placeholders hatched). The guest-price bars were removed (2026-10-09).
+5. **Swipe cost** (`figures/swipe_cost.png`, `charts.plot_swipe_cost`): one swipe on each plan next to the three outside prices (Cooking, Cheap takeout, Sit-down, with the sample sizes). The guest-price bars were removed (2026-10-09).
 6. **On-campus** (`figures/on_campus_extra_cost.png`, `plot_on_campus_extra`): the 21-meal panel of the extra-cost chart alone (see the On-campus bullet below).
 - Draft A was dropped and `figures/drafts/` removed (in git history).
-- **Markers:** "Cooking", "Cheap takeout", "Sit-down" are small labels on the x-axis (no dashed lines across the plot); `PRICE_MARKERS` in `src/outside_food.py`. **Cooking = $5.15, real** (from `cooking.cooking_cost_per_meal()`). **Cheap takeout ~$13 and sit-down ~$30 are still placeholders** (shown with "?", `PLACEHOLDER_MARKERS`) until the restaurant sample is in.
+- **Markers:** "Cooking", "Cheap takeout", "Sit-down" are small labels on the x-axis (no dashed lines across the plot); `PRICE_MARKERS` in `src/outside_food.py`. **Cooking = $5.15, real** (from `cooking.cooking_cost_per_meal()`). **Cheap takeout = $12.66 and sit-down = $24.70, real** (mean out-the-door price of the 20 counter / 10 sit-down sample meals, `restaurants.average_price`). `PLACEHOLDER_MARKERS` is now empty; any name put back in it is shown as "~$13?" and hatched.
 - **Grad students:** `figures/grad_cafe_spending.png` — cheapest option (no plan / GradPlus Regular / Deluxe) by yearly café spending, switch points $933 and $1,604 (independent of the estimated café price).
 - **On-campus undergrads** (`figures/on_campus_extra_cost.png`, `outside_food.plot_on_campus_extra`): the 21-meal panel of the extra-cost chart on its own, same axes and colour steps; **compares against the cheapest of all four options** (including the 5-/10-meal plans on-campus students can't buy, read as "if you could choose") and keeps the computed takeaway title "The required on-campus plan only pays off if you eat most meals at HUDS and meals elsewhere would cost over $14" (both confirmed by the user 2026-10-09); "On-campus students" section in `report.md`. Supporting chart `figures/appendix/on_campus_cost_per_meal.png`: cost per meal eaten vs meals per week, guest prices as reference lines, BoardPlus spent and unspent, Monte Carlo range shaded.
 - **No all-plans map** mixing student groups (GradPlus "wins" most of it only because café meals are cheaper and undergrads can't buy it); explained in a note in `report.md`.
@@ -100,6 +100,7 @@ Python 3.9+ (the machine has 3.9.6). Dependencies in a project virtualenv `.venv
 - dining.harvard.edu blocks scripted requests (HTTP 403). HUDS pages are saved from a browser into `data/raw/manual/` and parsed by `scripts/fetch_prices.py`, which verifies each page's canonical URL.
 - Resident board fee for 2026–27 is $8,942 (official; see Data section).
 - Restaurant prices come from a hand-collected sample of ~30 meals, not the Google Places API. The user enters menu prices **before** tax and tip; code adds the **7% meals tax**, plus an **18% tip for sit-down** meals and **0% for counter service** (the `service` column).
+- **Restaurant sample (done 2026-10-09):** 30 meals in `data/hand_collected/restaurant_meals.csv` (22 "Claude (web)" rows looked up online, 8 "CC" rows checked by the user). Out-the-door = menu × (1 + 7% tax + 18% tip on the **pre-tax** menu price for sit-down) — sit-down 1.25×, counter 1.07×. Markers use plain **means**: counter $12.66 (median $13.54), sit-down $24.70 (median $22.59). Breakfast/lunch/dinner averages ($14.09 / $17.27 / $18.25; by service too) are in `figures/restaurant_prices_summary.csv` and `report.md` but **not used in the charts** yet. `price_source` "news article" (Daily Provisions, Aug 2025) is accepted and kept (dropping it: counter $12.70); Joe's Pizza is the user's in-person estimate for 2 slices.
 - **Cooking cost per meal (decided 2026-10-09):** USDA food plan weekly cost, average of the female and male 19–50 groups (Thrifty: 20–50), ÷ 21 meals. **Moderate-cost plan = the cooking marker ($5.15)**, range Thrifty–Liberal **$4.01–$6.42**. **Default: a student cooking alone (+20%, USDA's 1-person adjustment)**; roommates sharing (4-person, no adjustment, $4.29 moderate) is the lower case in `report.md`. **Regional adjustment: BLS Northeast vs U.S. average prices, +6.3%** (geometric mean over the 9 items BLS prices in both areas). BLS has no Boston food price levels (the Boston CPI measures change only), so "Boston" became "Northeast". Groceries only — no time, equipment or waste (in Limitations). Limitations also notes most on-campus students have limited kitchen access, so the cooking price is less realistic for them.
 - Optional local grocery basket by the user.
 
@@ -142,18 +143,18 @@ Python 3.9+ (the machine has 3.9.6). Dependencies in a project virtualenv `.venv
 
 - **Cooking cost done:** `scripts/fetch_cooking_cost.py` → `data/cooking_cost.csv` (USDA Aug 2026 PDFs parsed with the standard library; BLS API v1); `--offline` re-parses the saved copies.
 - **Step 1 done:** `scripts/fetch_prices.py` → `data/huds_prices.csv` (every value with source URL, fetch date and the quoted page text).
-- **Model done and tested:** `src/model.py` (plans, outside prices, term calendar), `src/decision_map.py` (habit patterns, yearly costs, `outside_price` and `no_plan`), `src/outside_food.py` (current model: full yearly food bill, cheapest option, all off-campus figures), `src/cooking.py` (cooking cost per meal), `src/style.py` (figure rules), `src/on_campus.py`, `src/charts.py`, `src/monte_carlo.py` (guest-rate legacy). **127 tests pass** (`.venv/bin/python -m pytest`).
+- **Model done and tested:** `src/model.py` (plans, outside prices, term calendar), `src/decision_map.py` (habit patterns, yearly costs, `outside_price` and `no_plan`), `src/outside_food.py` (current model: full yearly food bill, cheapest option, all off-campus figures), `src/cooking.py` (cooking cost per meal), `src/style.py` (figure rules), `src/on_campus.py`, `src/charts.py`, `src/monte_carlo.py` (guest-rate legacy). **131 tests pass** (`.venv/bin/python -m pytest`).
 - **Current figures** (`scripts/make_figures.py`): lead chart, decision map + CSV, spending by option, extra cost by option, swipe cost, on-campus extra cost, grad café spending; appendix: on-campus cost per meal + CSV. Captions in `report.md`.
-- **First results on the current model** (outside price still a variable; in `report.md`): no plan is cheapest for everyone below $14.33 a meal and in 54% of the chart; the 21-meal plan wins for heavy HUDS users from $14.33 (every meal) to ~$20 (15 meals/week); the **10-meal plan now wins** for ~9–14 HUDS meals/week from $20.12; the 5-meal plan for ~3–13 from $20.22. Picking the wrong option costs up to $7,894 a semester. At the real cooking price ($5.15) no plan is cheapest for everyone.
+- **First results on the current model** (in `report.md`; markers $5.15 / $12.66 / $24.70 — at both cooking and takeout prices no plan is cheapest for everyone; at sit-down, 21-meal 15+ HUDS meals/week, 10-meal 10–14, 5-meal 5–9, no plan 0–4): no plan is cheapest for everyone below $14.33 a meal and in 54% of the chart; the 21-meal plan wins for heavy HUDS users from $14.33 (every meal) to ~$20 (15 meals/week); the **10-meal plan now wins** for ~9–14 HUDS meals/week from $20.12; the 5-meal plan for ~3–13 from $20.22. Picking the wrong option costs up to $7,894 a semester. At the real cooking price ($5.15) no plan is cheapest for everyone.
 - **`report.md`:** scope note, results, numbered figure captions, assumptions (incl. cooking cost), Limitations, Graduate students, on-campus appendix, plus the archived guest-rate sections (marked superseded). Not final.
-- **Templates ready but empty:** `data/hand_collected/restaurant_meals.csv`, `grocery_basket.csv`.
-- **Not done yet:** restaurant prices, Monte Carlo on the new model, validation, README, final report.
+- **Restaurant sample done** (30 meals); `grocery_basket.csv` (optional) still empty.
+- **Not done yet:** Monte Carlo on the new model, validation, README, final report.
 
 ## Next steps (in order)
 
 1. ~~Clean up Drafts B and C~~ — done 2026-10-08 (see "Decision map").
 2. ~~Fetch the cooking cost per meal~~ — done 2026-10-09 ($5.15 marker in the model).
-3. **User collects ~30 restaurant meals** in `data/hand_collected/restaurant_meals.csv`; then compute outside prices (tax + tip rule above), replace the placeholder markers with real values, and consider separate breakfast/lunch/dinner outside prices.
+3. ~~Restaurant meals~~ — done 2026-10-09 (real markers in every chart). Still to decide: **separate breakfast/lunch/dinner outside prices** (counter lunches average $14.71, above the $14.33 at which the 21-meal plan starts to win, so it could matter).
 4. **Rebuild the Monte Carlo on the current model** (outside price, cooking share, weeks per term 14.5–16, first-week swipes) and its stability/assumption figures.
 5. **Update the remaining figures** for the current model as needed (e.g. example student; meal-type chart if per-meal-type prices are used).
 6. Validation (swipe history or survey), README with one-command reproduction, final `report.md`.

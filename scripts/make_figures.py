@@ -7,6 +7,7 @@ Usage:
 Current model (from 2026-10-08): no guest meals; meals not eaten at HUDS are eaten out or cooked
 at an outside price (see src/outside_food.py). Figure rules (text size, titles) are in src/style.py.
 Figures (figures/), in report order:
+  restaurant_prices_summary.csv          out-the-door restaurant prices by service and meal type (feeds the markers)
   spending_at_three_prices.png           lead chart: spending per semester vs HUDS meals, at 3 outside prices
   decision_map_undergrad_offcampus.png/.csv  cheapest option by outside price x HUDS meals eaten
   spending_by_option.png                 spending per semester under each option (5 bands, contours)
@@ -35,6 +36,7 @@ from charts import plot_grad_spending, plot_swipe_cost  # noqa: E402
 from model import load_prices  # noqa: E402
 from monte_carlo import draw_assumptions  # noqa: E402
 from on_campus import FULL_WEEK, plot_on_campus, resident_cost_per_meal  # noqa: E402
+from restaurants import summary_rows  # noqa: E402
 from outside_food import (  # noqa: E402
     plot_extra_cost,
     plot_lead,
@@ -57,6 +59,12 @@ def main():
         fig.savefig(path, dpi=150, facecolor=fig.get_facecolor())
         print(f"wrote {path.relative_to(ROOT)}")
 
+    with (OUT / "restaurant_prices_summary.csv").open("w", newline="") as f:
+        rows = summary_rows()
+        w = csv.DictWriter(f, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
+    print("wrote figures/restaurant_prices_summary.csv")
     save(plot_lead(prices), OUT / "spending_at_three_prices.png")
     save(plot_main_map(prices), OUT / "decision_map_undergrad_offcampus.png")
     write_grid_csv(prices, OUT / "decision_map_undergrad_offcampus.csv")

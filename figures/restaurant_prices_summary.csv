@@ -1,0 +1,15 @@
+group,n,mean,median,min,max
+all meals,30,16.67,14.47,5.77,40.0
+counter,20,12.66,13.54,5.77,17.98
+sit-down,10,24.7,22.59,18.74,40.0
+breakfast,9,14.09,11.77,5.77,22.69
+lunch,10,17.27,15.38,9.63,32.5
+dinner,11,18.25,14.55,8.56,40.0
+"breakfast, counter",6,10.79,11.5,5.77,13.75
+"breakfast, sit-down",3,20.68,20.62,18.74,22.69
+"lunch, counter",8,14.71,14.82,9.63,17.98
+"lunch, sit-down",2,27.5,27.5,22.5,32.5
+"dinner, counter",6,11.79,12.01,8.56,14.55
+"dinner, sit-down",5,26.0,23.75,20.0,40.0
+"counter, without news-article rows",19,12.7,13.75,5.77,17.98
+"sit-down, without news-article rows",10,24.7,22.59,18.74,40.0

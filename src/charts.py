@@ -150,7 +150,11 @@ def plot_swipe_cost(prices: Prices):
     names = {5: "5-meal plan", 10: "10-meal plan", 21: "21-meal plan\n(= on-campus plan)"}
     bars = [(f"{names[n]}\n(one swipe)", v, PLAN_COLORS[plans[n]]) for n, v in swipes.items()]
     neutral = "#898781"
-    notes = {"Cooking": "(USDA moderate plan)"}
+    from restaurants import averages
+
+    n = {k: v["n"] for k, v in averages(by="service").items()}
+    notes = {"Cooking": "(USDA\nmoderate plan)", "Cheap takeout": f"(avg of {n['counter']}\ncounter meals)",
+             "Sit-down": f"(avg of {n['sit-down']}\nsit-down meals)"}
     bars += [(f"{name}\n{notes.get(name, '(placeholder)')}", price, neutral) for name, price in PRICE_MARKERS]
     value_text = {i + 3: marker_price_text(name, price) for i, (name, price) in enumerate(PRICE_MARKERS)}
 
@@ -185,7 +189,8 @@ def plot_swipe_cost(prices: Prices):
     ax.set_ylim(0, max(b[1] for b in bars) * 1.15)
     ax.text(1, -0.17, "Meal plans", transform=ax.get_xaxis_transform(), ha="center", va="top",
             fontsize=style.LABEL, color=MUTED)
-    ax.text(sum(xs[3:]) / len(xs[3:]), -0.17, "Meals not eaten at HUDS (hatched = placeholder price)",
+    group = "Meals not eaten at HUDS" + (" (hatched = placeholder price)" if PLACEHOLDER_MARKERS else "")
+    ax.text(sum(xs[3:]) / len(xs[3:]), -0.17, group,
             transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=style.LABEL, color=MUTED)
     cook = dict(PRICE_MARKERS)["Cooking"]
     style.title(fig, f"Cooking (${cook:.2f} a meal) is cheaper than any swipe; a plan only pays off against "
